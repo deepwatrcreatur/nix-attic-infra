@@ -2,30 +2,30 @@
 
 Production-ready Attic binary cache infrastructure with automated post-build hooks, SOPS secrets integration, and cross-platform client management for NixOS and macOS.
 
-## ✨ Features
+## Features
 
-### 🚀 Zero-Touch Automation
+### Zero-Touch Automation
 - **Automated post-build hooks** that push to your Attic cache after every build
 - **Smart filtering** that skips temporary and source derivations
 - **Non-fatal error handling** that won't break your builds
 
-### 🔐 Enterprise Security
+### Enterprise Security
 - **SOPS integration** for secure token management
 - **Dynamic token substitution** during home-manager activation
 - **Multi-server authentication** with per-server token isolation
 
-### 🛡️ Production Safety
+### Production Safety
 - **Circular dependency prevention** with built-in assertions
 - **User permission management** for post-build hooks
 - **Host-based safety checks** to prevent configuration conflicts
 
-### 🌐 Cross-Platform Support
+### Cross-Platform Support
 - **NixOS modules** for system-level integration
 - **Home Manager modules** for user-level configuration
 - **macOS support** via Darwin-specific client modules
 - **Multi-architecture** compatibility
 
-## 🎯 Use Cases
+## Use Cases
 
 ### Team Binary Caches
 Perfect for development teams wanting automatic cache population without manual intervention.
@@ -39,7 +39,7 @@ Production-grade security and safety features for large-scale Nix deployments.
 ### Multi-Host Management
 Centralized cache management across multiple development and production environments.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Basic Client Setup
 
@@ -80,7 +80,7 @@ Centralized cache management across multiple development and production environm
 }
 ```
 
-## 📦 What's Included
+## What's Included
 
 ### NixOS Modules
 - `attic-post-build-hook` - Automated cache uploads after builds
@@ -95,7 +95,7 @@ Centralized cache management across multiple development and production environm
 - `secure-enterprise` - SOPS + multi-server configuration
 - `basic-client` - Simple client configuration
 
-## 🔧 Configuration Options
+## Configuration Options
 
 ### Post-Build Hook Configuration
 
@@ -125,7 +125,7 @@ programs.attic-client = {
 };
 ```
 
-## 🔒 Security Features
+## Security Features
 
 ### SOPS Integration
 Seamlessly integrates with SOPS-nix for secure token management:
@@ -147,7 +147,7 @@ Built-in checks prevent common configuration mistakes:
 - Validates user permissions for hook execution
 - Ensures token files exist before activation
 
-## 🏗️ Architecture
+## Architecture
 
 ### Client Architecture
 ```
@@ -176,7 +176,7 @@ Built-in checks prevent common configuration mistakes:
 └─────────────┘    └──────────────────┘    └─────────────┘
 ```
 
-## 🤝 Contributing
+## Contributing
 
 This project aims to provide production-ready Attic infrastructure. Contributions are welcome!
 
@@ -186,14 +186,14 @@ This project aims to provide production-ready Attic infrastructure. Contribution
 - Integration examples for popular CI systems
 - Performance optimization configurations
 
-## 📄 License
+## License
 
 MIT License - see [LICENSE](LICENSE) for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built on top of the excellent [Attic](https://github.com/zhaofengli/attic) project by zhaofengli and the broader Nix community's infrastructure patterns.
 
 ---
 
-*Transform your Nix builds from manual cache management to zero-touch automation* 🚀
+Transform your Nix builds from manual cache management to zero-touch automation.
