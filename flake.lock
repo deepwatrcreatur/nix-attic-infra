@@ -30,11 +30,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1773492668,
-        "narHash": "sha256-fiwt494iXWT7x4l8zFUSwJ8D7gzozFhvp7itcgk2IG8=",
+        "lastModified": 1773503295,
+        "narHash": "sha256-lArHSe0DuXEriP79Gxcpdkn/+c9iAqMD/FaStix499E=",
         "owner": "deepwatrcreatur",
         "repo": "attic-observatory",
-        "rev": "4beb35edd4f8d22d1165487df4ce2a1e632b3835",
+        "rev": "2211935082bf462f6b1785dc65517891bf4ffd71",
         "type": "github"
       },
       "original": {
