@@ -193,6 +193,7 @@ in
       };
       environment = {
         ATTIC_DB_PATH = cfg.database.snapshotPath;
+        ATTIC_DB_IMMUTABLE = "1";
         ATTIC_OBSERVATORY_HOST = cfg.listenAddress;
         ATTIC_OBSERVATORY_PORT = toString cfg.listenPort;
         ATTIC_OBSERVATORY_THEME = cfg.theme;
