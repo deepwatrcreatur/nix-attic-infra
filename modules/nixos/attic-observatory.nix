@@ -20,10 +20,10 @@ let
     tmp_db="$(mktemp ${lib.escapeShellArg "${cfg.database.snapshotPath}.tmp.XXXXXX"})"
     trap 'rm -f "$tmp_db"' EXIT
 
-    ${pkgs.sqlite}/bin/sqlite3 ${lib.escapeShellArg cfg.database.sourcePath} ".timeout 5000" ".backup $tmp_db"
+    ${pkgs.sqlite}/bin/sqlite3 ${lib.escapeShellArg cfg.database.sourcePath} ".timeout 5000" ".backup \"$tmp_db\""
     chown root:${appGroup} "$tmp_db"
     chmod 0440 "$tmp_db"
-    mv "$tmp_db" ${lib.escapeShellArg cfg.database.snapshotPath}
+    mv -- "$tmp_db" ${lib.escapeShellArg cfg.database.snapshotPath}
     trap - EXIT
   '';
 in
@@ -110,7 +110,7 @@ in
 
     openFirewall = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = false;
       description = "Whether to open the nginx UI port in the firewall.";
     };
   };

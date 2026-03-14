@@ -4,7 +4,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    attic-observatory.url = "github:deepwatrcreatur/attic-observatory";
+    attic-observatory = {
+      url = "github:deepwatrcreatur/attic-observatory";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # Canonical upstream Attic flake (server + client + nixos module)
     attic = {
