@@ -92,6 +92,7 @@ This flake includes `github:zhaofengli/attic` as an input and re-exports:
 ### NixOS Modules
 - `attic-post-build-hook` - Automated cache uploads after builds
 - `attic-client` - Client configuration with safety checks
+- `attic-observatory` - Read-only Attic cache dashboard with hardened deployment
 
 ### Home Manager Modules
 - `attic-client` - Cross-platform client with SOPS integration
@@ -121,6 +122,26 @@ services.attic-post-build-hook = {
   # Post-build hooks run under the nix-daemon (root). Ensure the token file is readable.
 };
 ```
+
+### Attic Observatory Configuration
+
+```nix
+services.attic-observatory = {
+  enable = true;
+  theme = "sugarplum";
+
+  nginx = {
+    enable = true;
+    port = 8082;
+  };
+};
+```
+
+This module:
+- runs the app as an unprivileged `attic-observatory` user
+- snapshots the live Attic SQLite DB into `/var/lib/attic-observatory/server.db`
+- serves the dashboard behind nginx by default
+- keeps the app package overridable via `services.attic-observatory.package`
 
 ### Client Configuration
 
