@@ -25,6 +25,24 @@
         "type": "github"
       }
     },
+    "attic-observatory": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1773492668,
+        "narHash": "sha256-fiwt494iXWT7x4l8zFUSwJ8D7gzozFhvp7itcgk2IG8=",
+        "owner": "deepwatrcreatur",
+        "repo": "attic-observatory",
+        "rev": "4beb35edd4f8d22d1165487df4ce2a1e632b3835",
+        "type": "github"
+      },
+      "original": {
+        "owner": "deepwatrcreatur",
+        "repo": "attic-observatory",
+        "type": "github"
+      }
+    },
     "crane": {
       "locked": {
         "lastModified": 1751562746,
@@ -118,16 +136,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1766902085,
-        "narHash": "sha256-coBu0ONtFzlwwVBzmjacUQwj3G+lybcZ1oeNSQkgC0M=",
+        "lastModified": 1773375660,
+        "narHash": "sha256-SEzUWw2Rf5Ki3bcM26nSKgbeoqi2uYy8IHVBqOKjX3w=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "c0b0e0fddf73fd517c3471e546c0df87a42d53f4",
+        "rev": "3e20095fe3c6cbb1ddcef89b26969a69a1570776",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
-        "ref": "nixos-unstable",
+        "ref": "nixos-25.11",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -148,11 +166,28 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1766902085,
+        "narHash": "sha256-coBu0ONtFzlwwVBzmjacUQwj3G+lybcZ1oeNSQkgC0M=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "c0b0e0fddf73fd517c3471e546c0df87a42d53f4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "attic": "attic",
+        "attic-observatory": "attic-observatory",
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs_2"
       }
     },
     "systems": {

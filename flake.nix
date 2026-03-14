@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    attic-observatory.url = "github:deepwatrcreatur/attic-observatory";
 
     # Canonical upstream Attic flake (server + client + nixos module)
     attic = {
@@ -18,6 +19,7 @@
       nixpkgs,
       flake-utils,
       attic,
+      attic-observatory,
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
@@ -30,6 +32,7 @@
           attic = attic.packages.${system}.attic;
           attic-client = attic.packages.${system}.attic-client;
           attic-server = attic.packages.${system}.attic-server;
+          attic-observatory = attic-observatory.packages.${system}.default;
           default = attic.packages.${system}.attic;
         };
 
@@ -62,6 +65,7 @@
         # nix-attic-infra additions
         attic-post-build-hook = import ./modules/nixos/attic-post-build-hook.nix;
         attic-client = import ./modules/nixos/attic-client.nix;
+        attic-observatory = import ./modules/nixos/attic-observatory.nix { atticObservatory = attic-observatory; };
 
         default = self.nixosModules.attic-post-build-hook;
       };
@@ -99,13 +103,12 @@
           pkgs.runCommand "check-modules-eval" { nativeBuildInputs = [ pkgs.nix ]; } ''
             echo "Checking that all modules can be imported without errors..."
 
-            nix-instantiate --eval --strict -E '
+            nix eval --impure --expr '
               let
-                postBuildHook = import ${./modules/nixos/attic-post-build-hook.nix};
-                atticClient = import ${./modules/nixos/attic-client.nix};
+                flake = builtins.getFlake (toString ${./.});
               in
-              "modules imported successfully"
-            '
+              builtins.attrNames flake.nixosModules
+            ' >/dev/null
 
             echo "✓ NixOS modules import successfully"
             touch $out

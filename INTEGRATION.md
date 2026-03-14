@@ -109,6 +109,32 @@ Simplify configuration with built-in helpers:
 }
 ```
 
+### 5. Attic Cache Dashboard
+
+For hosts that run `atticd`, you can deploy `attic-observatory` directly from `nix-attic-infra` without adding a separate flake input:
+
+```nix
+{
+  imports = [ nix-attic-infra.nixosModules.attic-observatory ];
+
+  services.attic-observatory = {
+    enable = true;
+    theme = "sugarplum";
+
+    nginx = {
+      enable = true;
+      port = 8082;
+    };
+  };
+}
+```
+
+If you want to pin a different app build than the one bundled by `nix-attic-infra`, override:
+
+```nix
+services.attic-observatory.package = my-custom-attic-observatory-package;
+```
+
 ## Advanced Usage Patterns
 
 ### SOPS Integration for Secure Tokens
