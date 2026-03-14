@@ -17,12 +17,12 @@ let
   dbSyncScript = pkgs.writeShellScript "attic-observatory-db-sync" ''
     set -euo pipefail
 
-    tmp_db="$(mktemp ${cfg.database.snapshotPath}.tmp.XXXXXX)"
+    tmp_db="$(mktemp ${lib.escapeShellArg "${cfg.database.snapshotPath}.tmp.XXXXXX"})"
     trap 'rm -f "$tmp_db"' EXIT
 
     ${pkgs.sqlite}/bin/sqlite3 ${lib.escapeShellArg cfg.database.sourcePath} ".timeout 5000" ".backup $tmp_db"
-    chown ${appUser}:${appGroup} "$tmp_db"
-    chmod 0640 "$tmp_db"
+    chown root:${appGroup} "$tmp_db"
+    chmod 0440 "$tmp_db"
     mv "$tmp_db" ${lib.escapeShellArg cfg.database.snapshotPath}
     trap - EXIT
   '';
@@ -198,6 +198,8 @@ in
         ATTIC_OBSERVATORY_THEME = cfg.theme;
       };
     };
+
+    services.nginx.enable = lib.mkIf cfg.nginx.enable (lib.mkDefault true);
 
     services.nginx.virtualHosts.${cfg.nginx.virtualHost} = lib.mkIf cfg.nginx.enable {
       listen = [
