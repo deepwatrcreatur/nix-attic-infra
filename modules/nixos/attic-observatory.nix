@@ -129,12 +129,12 @@ in
       requires = [ "atticd.service" ];
       serviceConfig = {
         Type = "oneshot";
+        ExecStart = dbSyncScript;
         User = "root";
         Group = "root";
         StateDirectory = "attic-observatory";
         UMask = "0027";
       };
-      script = dbSyncScript;
     };
 
     systemd.timers.attic-observatory-db-sync = {
