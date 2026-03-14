@@ -58,7 +58,7 @@ in
 
     database = {
       sourcePath = lib.mkOption {
-        type = lib.types.path;
+        type = lib.types.str;
         default = "/var/lib/atticd/server.db";
         description = "Path to the live Attic SQLite database.";
       };
