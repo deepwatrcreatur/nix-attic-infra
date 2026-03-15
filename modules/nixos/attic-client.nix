@@ -152,23 +152,25 @@ in
     # Base configuration (always applied when enabled)
     {
       assertions = [
-        # SOPS backend: tokenFile is optional - user may manage token externally at /run/secrets/attic-client-token
-        # No assertion required for sops backend
+        # Agenix backend requires ageSecretFile
         {
           assertion = cfg.secretsBackend != "agenix" || cfg.ageSecretFile != null;
           message = "services.attic-client: When using agenix backend, ageSecretFile must be set";
         }
+        # Manual backend requires manualTokenPath
         {
           assertion = cfg.secretsBackend != "none" || cfg.manualTokenPath != null;
           message = "services.attic-client: When using 'none' backend, manualTokenPath must be set";
         }
+        # Only require sops-nix when tokenFile is set (users can manage tokens externally without sops-nix)
         {
-          assertion = cfg.secretsBackend != "sops" || hasSops;
-          message = "services.attic-client: secretsBackend is set to 'sops' but sops-nix module is not available. Import sops-nix or use a different backend.";
+          assertion = !(cfg.secretsBackend == "sops" && cfg.tokenFile != null) || hasSops;
+          message = "services.attic-client: secretsBackend is 'sops' with tokenFile set, but sops-nix module is not available. Import sops-nix or use a different backend.";
         }
+        # Require agenix when ageSecretFile is set
         {
-          assertion = cfg.secretsBackend != "agenix" || hasAgenix;
-          message = "services.attic-client: secretsBackend is set to 'agenix' but agenix module is not available. Import agenix or use a different backend.";
+          assertion = !(cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null) || hasAgenix;
+          message = "services.attic-client: secretsBackend is 'agenix' with ageSecretFile set, but agenix module is not available. Import agenix or use a different backend.";
         }
       ];
 
@@ -253,9 +255,9 @@ in
         ))
       ];
 
-      # Enable token preparation service for all backends (including "none" with manualTokenPath)
-      # This service prepares the bearer token file used by the Nix daemon
-      systemd.services.nix-attic-token = lib.mkIf (cfg.secretsBackend != "none" || cfg.manualTokenPath != null) {
+      # Enable token preparation service only when actual token management is configured
+      # This avoids adding unnecessary service dependencies when users manage tokens externally
+      systemd.services.nix-attic-token = lib.mkIf (cfg.tokenFile != null || cfg.ageSecretFile != null || cfg.manualTokenPath != null) {
         description = "Prepare Attic authentication token for Nix daemon";
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
@@ -288,7 +290,7 @@ in
         '';
       };
 
-      systemd.services.nix-daemon = lib.mkIf (cfg.secretsBackend != "none" || cfg.manualTokenPath != null) {
+      systemd.services.nix-daemon = lib.mkIf (cfg.tokenFile != null || cfg.ageSecretFile != null || cfg.manualTokenPath != null) {
         requires = [ "nix-attic-token.service" ];
         after = [ "nix-attic-token.service" ];
       };
