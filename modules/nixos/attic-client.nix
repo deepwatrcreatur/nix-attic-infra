@@ -162,22 +162,26 @@ in
       or configure substituters manually if signature verification is needed.
     '';
 
-    # SOPS secret configuration
-    sops.secrets."attic-client-token" = lib.mkIf (cfg.secretsBackend == "sops" && cfg.tokenFile != null) {
-      sopsFile = cfg.tokenFile;
-      key = cfg.tokenKey;
-      path = "/run/secrets/attic-client-token";
-      owner = config.users.users.root.name;
-      group = config.users.users.root.group;
-      mode = "0400";
+    # SOPS secret configuration (only when sops backend is selected AND sops module is available)
+    sops = lib.mkIf (cfg.secretsBackend == "sops" && cfg.tokenFile != null && config ? sops) {
+      secrets."attic-client-token" = {
+        sopsFile = cfg.tokenFile;
+        key = cfg.tokenKey;
+        path = "/run/secrets/attic-client-token";
+        owner = config.users.users.root.name;
+        group = config.users.users.root.group;
+        mode = "0400";
+      };
     };
 
-    # Agenix secret configuration
-    age.secrets."attic-client-token" = lib.mkIf (cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null) {
-      file = cfg.ageSecretFile;
-      owner = cfg.ageSecretOwner;
-      group = cfg.ageSecretGroup;
-      mode = "0400";
+    # Agenix secret configuration (only when agenix backend is selected AND agenix module is available)
+    age = lib.mkIf (cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null && config ? age) {
+      secrets."attic-client-token" = {
+        file = cfg.ageSecretFile;
+        owner = cfg.ageSecretOwner;
+        group = cfg.ageSecretGroup;
+        mode = "0400";
+      };
     };
 
     environment.systemPackages = [ pkgs.attic-client ];
