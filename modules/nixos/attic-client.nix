@@ -6,6 +6,7 @@
   config,
   lib,
   pkgs,
+  options,
   ...
 }:
 
@@ -25,9 +26,9 @@ let
 
   substituterUrl = "${lib.removeSuffix "/" cfg.server}/${cfg.cache}";
 
-  # Check if secrets modules are available
-  hasSops = config ? sops && config.sops ? secrets;
-  hasAgenix = config ? age && config.age ? secrets;
+  # Check if secrets modules are available by checking for their options
+  hasSops = builtins.hasAttr "sops" options;
+  hasAgenix = builtins.hasAttr "age" options;
 
 in
 {
