@@ -14,15 +14,18 @@ let
   cfg = config.services.attic-client;
 
   # Determine the token file path based on secrets backend
+  # Each backend has a clear contract for where the token is expected
   tokenFilePath =
-    if cfg.secretsBackend == "sops" && cfg.tokenFile != null then
+    if cfg.secretsBackend == "sops" then
+      # SOPS backend: always at /run/secrets/attic-client-token
+      # Either managed by this module (tokenFile set) or externally
       "/run/secrets/attic-client-token"
-    else if cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null then
+    else if cfg.secretsBackend == "agenix" then
+      # Agenix backend: use the path from age.secrets
       config.age.secrets."attic-client-token".path
-    else if cfg.manualTokenPath != null then
-      cfg.manualTokenPath
     else
-      "/run/secrets/attic-client-token";
+      # Manual backend ("none"): use user-provided path
+      cfg.manualTokenPath;
 
   substituterUrl = "${lib.removeSuffix "/" cfg.server}/${cfg.cache}";
 
@@ -148,10 +151,8 @@ in
     # Base configuration (always applied when enabled)
     {
       assertions = [
-        {
-          assertion = cfg.secretsBackend != "sops" || cfg.tokenFile != null || cfg.manualTokenPath != null;
-          message = "services.attic-client: When using sops backend, tokenFile must be set (or use manualTokenPath with secretsBackend = \"none\")";
-        }
+        # SOPS backend: tokenFile is optional - user may manage token externally at /run/secrets/attic-client-token
+        # No assertion required for sops backend
         {
           assertion = cfg.secretsBackend != "agenix" || cfg.ageSecretFile != null;
           message = "services.attic-client: When using agenix backend, ageSecretFile must be set";
@@ -251,7 +252,9 @@ in
         ))
       ];
 
-      systemd.services.nix-attic-token = lib.mkIf (cfg.secretsBackend != "none") {
+      # Enable token preparation service for all backends (including "none" with manualTokenPath)
+      # This service prepares the bearer token file used by the Nix daemon
+      systemd.services.nix-attic-token = lib.mkIf (cfg.secretsBackend != "none" || cfg.manualTokenPath != null) {
         description = "Prepare Attic authentication token for Nix daemon";
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
@@ -284,7 +287,7 @@ in
         '';
       };
 
-      systemd.services.nix-daemon = lib.mkIf (cfg.secretsBackend != "none") {
+      systemd.services.nix-daemon = lib.mkIf (cfg.secretsBackend != "none" || cfg.manualTokenPath != null) {
         requires = [ "nix-attic-token.service" ];
         after = [ "nix-attic-token.service" ];
       };
