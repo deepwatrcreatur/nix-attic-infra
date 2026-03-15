@@ -15,7 +15,7 @@ let
   # Determine the token file path based on secrets backend
   tokenFilePath =
     if cfg.secretsBackend == "sops" && cfg.tokenFile != null then
-      config.sops.secrets."attic-client-token".path
+      "/run/secrets/attic-client-token"
     else if cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null then
       config.age.secrets."attic-client-token".path
     else if cfg.manualTokenPath != null then
@@ -24,6 +24,10 @@ let
       "/run/secrets/attic-client-token";
 
   substituterUrl = "${lib.removeSuffix "/" cfg.server}/${cfg.cache}";
+
+  # Check if secrets modules are available
+  hasSops = config ? sops && config.sops ? secrets;
+  hasAgenix = config ? age && config.age ? secrets;
 
 in
 {
@@ -139,32 +143,155 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.secretsBackend != "sops" || cfg.tokenFile != null || cfg.manualTokenPath != null;
-        message = "services.attic-client: When using sops backend, tokenFile must be set (or use manualTokenPath with secretsBackend = \"none\")";
-      }
-      {
-        assertion = cfg.secretsBackend != "agenix" || cfg.ageSecretFile != null;
-        message = "services.attic-client: When using agenix backend, ageSecretFile must be set";
-      }
-      {
-        assertion = cfg.secretsBackend != "none" || cfg.manualTokenPath != null;
-        message = "services.attic-client: When using 'none' backend, manualTokenPath must be set";
-      }
-    ];
+  config = lib.mkIf cfg.enable (lib.mkMerge [
+    # Base configuration (always applied when enabled)
+    {
+      assertions = [
+        {
+          assertion = cfg.secretsBackend != "sops" || cfg.tokenFile != null || cfg.manualTokenPath != null;
+          message = "services.attic-client: When using sops backend, tokenFile must be set (or use manualTokenPath with secretsBackend = \"none\")";
+        }
+        {
+          assertion = cfg.secretsBackend != "agenix" || cfg.ageSecretFile != null;
+          message = "services.attic-client: When using agenix backend, ageSecretFile must be set";
+        }
+        {
+          assertion = cfg.secretsBackend != "none" || cfg.manualTokenPath != null;
+          message = "services.attic-client: When using 'none' backend, manualTokenPath must be set";
+        }
+        {
+          assertion = cfg.secretsBackend != "sops" || hasSops;
+          message = "services.attic-client: secretsBackend is set to 'sops' but sops-nix module is not available. Import sops-nix or use a different backend.";
+        }
+        {
+          assertion = cfg.secretsBackend != "agenix" || hasAgenix;
+          message = "services.attic-client: secretsBackend is set to 'agenix' but agenix module is not available. Import agenix or use a different backend.";
+        }
+      ];
 
-    warnings = lib.optional (cfg.configureNixSubstituter && cfg.trustedPublicKeys == [ ]) ''
-      attic-client: configureNixSubstituter is enabled but trustedPublicKeys is empty.
-      The trusted-public-keys attribute will be omitted from nix.settings.
-      Consider adding trusted public keys to services.attic-client.trustedPublicKeys
-      or configure substituters manually if signature verification is needed.
-    '';
+      warnings = lib.optional (cfg.configureNixSubstituter && cfg.trustedPublicKeys == [ ]) ''
+        attic-client: configureNixSubstituter is enabled but trustedPublicKeys is empty.
+        The trusted-public-keys attribute will be omitted from nix.settings.
+        Consider adding trusted public keys to services.attic-client.trustedPublicKeys
+        or configure substituters manually if signature verification is needed.
+      '';
 
-    # SOPS secret configuration (only when sops backend is selected AND sops module is available)
-    sops = lib.mkIf (cfg.secretsBackend == "sops" && cfg.tokenFile != null && config ? sops) {
-      secrets."attic-client-token" = {
+      environment.systemPackages = [ pkgs.attic-client ];
+
+      environment.etc."nix/attic-upload.sh" = lib.mkIf cfg.enablePostBuildHook {
+        mode = "0755";
+        text = ''
+          #!${pkgs.bash}/bin/bash
+          # Fail-safe post-build hook - never blocks builds.
+          set -uo pipefail
+
+          out_paths="''${OUT_PATHS-}"
+          drv_path="''${DRV_PATH-}"
+
+          if [ -z "$out_paths" ]; then
+            exit 0
+          fi
+
+          # Skip source/temporary derivations.
+          if [[ "$drv_path" == *"-source.drv" ]] || [[ "$drv_path" == *"tmp"* ]]; then
+            exit 0
+          fi
+
+          token_file="${tokenFilePath}"
+          if [ ! -f "$token_file" ]; then
+            echo "Attic: Token not available, skipping push" >&2
+            exit 0
+          fi
+
+          if [ ! -r "$token_file" ]; then
+            echo "Attic: Token file not readable, skipping push" >&2
+            exit 0
+          fi
+
+          token=$(cat "$token_file")
+          if [ -z "$token" ]; then
+            echo "Attic: Token empty, skipping push" >&2
+            exit 0
+          fi
+
+          tmpdir=$(mktemp -d)
+          trap 'rm -rf "$tmpdir"' EXIT
+
+          export XDG_CONFIG_HOME="$tmpdir"
+          mkdir -p "$XDG_CONFIG_HOME/attic"
+
+          cat > "$XDG_CONFIG_HOME/attic/config.toml" <<EOF
+          [servers."${cfg.serverName}"]
+          endpoint = "${cfg.server}"
+          token = "$token"
+          EOF
+
+          {
+            echo "Attic: pushing to ${cfg.serverName}:${cfg.cache}" >&2
+            # shellcheck disable=SC2086
+            ${pkgs.attic-client}/bin/attic push "${cfg.serverName}:${cfg.cache}" $out_paths 2>&1 || true
+          }
+
+          exit 0
+        '';
+      };
+
+      nix.settings = lib.mkMerge [
+        (lib.mkIf cfg.enablePostBuildHook {
+          post-build-hook = "/etc/nix/attic-upload.sh";
+        })
+        (lib.mkIf cfg.configureNixSubstituter (
+          {
+            substituters = lib.mkDefault [ substituterUrl ];
+          }
+          // lib.optionalAttrs (cfg.trustedPublicKeys != [ ]) {
+            trusted-public-keys = lib.mkDefault cfg.trustedPublicKeys;
+          }
+        ))
+      ];
+
+      systemd.services.nix-attic-token = lib.mkIf (cfg.secretsBackend != "none") {
+        description = "Prepare Attic authentication token for Nix daemon";
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        script = ''
+          set -euo pipefail
+
+          token_file="${tokenFilePath}"
+
+          if [[ -f "$token_file" ]]; then
+            if [[ ! -r "$token_file" ]]; then
+              echo "Warning: Attic client token not readable. Cache pulls may fail."
+            else
+              token=$(cat "$token_file")
+              if [[ -z "$token" ]]; then
+                echo "Warning: Attic client token is empty. Cache pulls may fail."
+              else
+                echo "Preparing Attic token for Nix daemon cache access..."
+                mkdir -p /run/nix
+                umask 0077
+                echo "bearer $token" > /run/nix/attic-token-bearer
+                chmod 0600 /run/nix/attic-token-bearer
+              fi
+            fi
+          else
+            echo "Warning: Attic client token not found at $token_file" >&2
+          fi
+        '';
+      };
+
+      systemd.services.nix-daemon = lib.mkIf (cfg.secretsBackend != "none") {
+        requires = [ "nix-attic-token.service" ];
+        after = [ "nix-attic-token.service" ];
+      };
+    }
+
+    # SOPS backend configuration
+    (lib.mkIf (cfg.secretsBackend == "sops" && cfg.tokenFile != null && hasSops) {
+      sops.secrets."attic-client-token" = {
         sopsFile = cfg.tokenFile;
         key = cfg.tokenKey;
         path = "/run/secrets/attic-client-token";
@@ -172,128 +299,16 @@ in
         group = config.users.users.root.group;
         mode = "0400";
       };
-    };
+    })
 
-    # Agenix secret configuration (only when agenix backend is selected AND agenix module is available)
-    age = lib.mkIf (cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null && config ? age) {
-      secrets."attic-client-token" = {
+    # Agenix backend configuration
+    (lib.mkIf (cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null && hasAgenix) {
+      age.secrets."attic-client-token" = {
         file = cfg.ageSecretFile;
         owner = cfg.ageSecretOwner;
         group = cfg.ageSecretGroup;
         mode = "0400";
       };
-    };
-
-    environment.systemPackages = [ pkgs.attic-client ];
-
-    environment.etc."nix/attic-upload.sh" = lib.mkIf cfg.enablePostBuildHook {
-      mode = "0755";
-      text = ''
-        #!${pkgs.bash}/bin/bash
-        # Fail-safe post-build hook - never blocks builds.
-        set -uo pipefail
-
-        out_paths="''${OUT_PATHS-}"
-        drv_path="''${DRV_PATH-}"
-
-        if [ -z "$out_paths" ]; then
-          exit 0
-        fi
-
-        # Skip source/temporary derivations.
-        if [[ "$drv_path" == *"-source.drv" ]] || [[ "$drv_path" == *"tmp"* ]]; then
-          exit 0
-        fi
-
-        token_file="${tokenFilePath}"
-        if [ ! -f "$token_file" ]; then
-          echo "Attic: Token not available, skipping push" >&2
-          exit 0
-        fi
-
-        if [ ! -r "$token_file" ]; then
-          echo "Attic: Token file not readable, skipping push" >&2
-          exit 0
-        fi
-
-        token=$(cat "$token_file")
-        if [ -z "$token" ]; then
-          echo "Attic: Token empty, skipping push" >&2
-          exit 0
-        fi
-
-        tmpdir=$(mktemp -d)
-        trap 'rm -rf "$tmpdir"' EXIT
-
-        export XDG_CONFIG_HOME="$tmpdir"
-        mkdir -p "$XDG_CONFIG_HOME/attic"
-
-        cat > "$XDG_CONFIG_HOME/attic/config.toml" <<EOF
-        [servers."${cfg.serverName}"]
-        endpoint = "${cfg.server}"
-        token = "$token"
-        EOF
-
-        {
-          echo "Attic: pushing to ${cfg.serverName}:${cfg.cache}" >&2
-          # shellcheck disable=SC2086
-          ${pkgs.attic-client}/bin/attic push "${cfg.serverName}:${cfg.cache}" $out_paths 2>&1 || true
-        }
-
-        exit 0
-      '';
-    };
-
-    nix.settings = lib.mkMerge [
-      (lib.mkIf cfg.enablePostBuildHook {
-        post-build-hook = "/etc/nix/attic-upload.sh";
-      })
-      (lib.mkIf cfg.configureNixSubstituter (
-        {
-          substituters = lib.mkDefault [ substituterUrl ];
-        }
-        // lib.optionalAttrs (cfg.trustedPublicKeys != [ ]) {
-          trusted-public-keys = lib.mkDefault cfg.trustedPublicKeys;
-        }
-      ))
-    ];
-
-    systemd.services.nix-attic-token = lib.mkIf (cfg.secretsBackend != "none") {
-      description = "Prepare Attic authentication token for Nix daemon";
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-      };
-      script = ''
-        set -euo pipefail
-
-        token_file="${tokenFilePath}"
-
-        if [[ -f "$token_file" ]]; then
-          if [[ ! -r "$token_file" ]]; then
-            echo "Warning: Attic client token not readable. Cache pulls may fail."
-          else
-            token=$(cat "$token_file")
-            if [[ -z "$token" ]]; then
-              echo "Warning: Attic client token is empty. Cache pulls may fail."
-            else
-              echo "Preparing Attic token for Nix daemon cache access..."
-              mkdir -p /run/nix
-              umask 0077
-              echo "bearer $token" > /run/nix/attic-token-bearer
-              chmod 0600 /run/nix/attic-token-bearer
-            fi
-          fi
-        else
-          echo "Warning: Attic client token not found at $token_file" >&2
-        fi
-      '';
-    };
-
-    systemd.services.nix-daemon = lib.mkIf (cfg.secretsBackend != "none") {
-      requires = [ "nix-attic-token.service" ];
-      after = [ "nix-attic-token.service" ];
-    };
-  };
+    })
+  ]);
 }
