@@ -1,7 +1,7 @@
 # NixOS module for Attic client configuration
 #
 # This module configures the Nix daemon to use an Attic cache with
-# automatic authentication token management via SOPS.
+# automatic authentication token management via SOPS or agenix.
 {
   config,
   lib,
@@ -12,9 +12,14 @@
 let
   cfg = config.services.attic-client;
 
+  # Determine the token file path based on secrets backend
   tokenFilePath =
-    if cfg.tokenFile != null then
+    if cfg.secretsBackend == "sops" && cfg.tokenFile != null then
       config.sops.secrets."attic-client-token".path
+    else if cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null then
+      config.age.secrets."attic-client-token".path
+    else if cfg.manualTokenPath != null then
+      cfg.manualTokenPath
     else
       "/run/secrets/attic-client-token";
 
@@ -23,7 +28,19 @@ let
 in
 {
   options.services.attic-client = {
-    enable = lib.mkEnableOption "Attic client for NixOS with SOPS token management";
+    enable = lib.mkEnableOption "Attic client for NixOS with secrets management";
+
+    secretsBackend = lib.mkOption {
+      type = lib.types.enum [ "sops" "agenix" "none" ];
+      default = "sops";
+      description = ''
+        Which secrets backend to use for managing the Attic token.
+        - "sops": Use sops-nix (requires sops-nix module)
+        - "agenix": Use agenix (requires agenix module)
+        - "none": Manual token management (provide manualTokenPath)
+      '';
+      example = "agenix";
+    };
 
     server = lib.mkOption {
       type = lib.types.str;
@@ -49,19 +66,54 @@ in
       example = "main";
     };
 
+    # SOPS options
     tokenFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
       description = ''
-        Path to the SOPS encrypted token file. If null, you must ensure a token is
-        available at /run/secrets/attic-client-token.
+        Path to the SOPS encrypted token file. Only used when secretsBackend = "sops".
+        If null with sops backend, you must ensure a token is available at /run/secrets/attic-client-token.
       '';
     };
 
     tokenKey = lib.mkOption {
       type = lib.types.str;
       default = "ATTIC_CLIENT_JWT_TOKEN";
-      description = "The key name in the SOPS file containing the token";
+      description = "The key name in the SOPS file containing the token (sops backend only)";
+    };
+
+    # Agenix options
+    ageSecretFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = ''
+        Path to the age-encrypted secret file (.age). Only used when secretsBackend = "agenix".
+        The file should contain the raw JWT token.
+      '';
+      example = lib.literalExpression "./secrets/attic-client-token.age";
+    };
+
+    ageSecretOwner = lib.mkOption {
+      type = lib.types.str;
+      default = "root";
+      description = "Owner of the decrypted agenix secret file";
+    };
+
+    ageSecretGroup = lib.mkOption {
+      type = lib.types.str;
+      default = "root";
+      description = "Group of the decrypted agenix secret file";
+    };
+
+    # Manual token path option
+    manualTokenPath = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = ''
+        Path to the token file when using secretsBackend = "none".
+        You are responsible for ensuring this file exists with the correct permissions.
+      '';
+      example = "/run/secrets/attic-client-token";
     };
 
     enablePostBuildHook = lib.mkOption {
@@ -88,6 +140,21 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.secretsBackend != "sops" || cfg.tokenFile != null || cfg.manualTokenPath != null;
+        message = "services.attic-client: When using sops backend, tokenFile must be set (or use manualTokenPath with secretsBackend = \"none\")";
+      }
+      {
+        assertion = cfg.secretsBackend != "agenix" || cfg.ageSecretFile != null;
+        message = "services.attic-client: When using agenix backend, ageSecretFile must be set";
+      }
+      {
+        assertion = cfg.secretsBackend != "none" || cfg.manualTokenPath != null;
+        message = "services.attic-client: When using 'none' backend, manualTokenPath must be set";
+      }
+    ];
+
     warnings = lib.optional (cfg.configureNixSubstituter && cfg.trustedPublicKeys == [ ]) ''
       attic-client: configureNixSubstituter is enabled but trustedPublicKeys is empty.
       The trusted-public-keys attribute will be omitted from nix.settings.
@@ -95,12 +162,21 @@ in
       or configure substituters manually if signature verification is needed.
     '';
 
-    sops.secrets."attic-client-token" = lib.mkIf (cfg.tokenFile != null) {
+    # SOPS secret configuration
+    sops.secrets."attic-client-token" = lib.mkIf (cfg.secretsBackend == "sops" && cfg.tokenFile != null) {
       sopsFile = cfg.tokenFile;
       key = cfg.tokenKey;
       path = "/run/secrets/attic-client-token";
       owner = config.users.users.root.name;
       group = config.users.users.root.group;
+      mode = "0400";
+    };
+
+    # Agenix secret configuration
+    age.secrets."attic-client-token" = lib.mkIf (cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null) {
+      file = cfg.ageSecretFile;
+      owner = cfg.ageSecretOwner;
+      group = cfg.ageSecretGroup;
       mode = "0400";
     };
 
@@ -178,7 +254,7 @@ in
       ))
     ];
 
-    systemd.services.nix-attic-token = lib.mkIf (cfg.tokenFile != null) {
+    systemd.services.nix-attic-token = lib.mkIf (cfg.secretsBackend != "none") {
       description = "Prepare Attic authentication token for Nix daemon";
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
@@ -211,7 +287,7 @@ in
       '';
     };
 
-    systemd.services.nix-daemon = lib.mkIf (cfg.tokenFile != null) {
+    systemd.services.nix-daemon = lib.mkIf (cfg.secretsBackend != "none") {
       requires = [ "nix-attic-token.service" ];
       after = [ "nix-attic-token.service" ];
     };
