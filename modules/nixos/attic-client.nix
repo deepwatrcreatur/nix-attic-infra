@@ -147,7 +147,8 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable (lib.mkMerge [
+  config = lib.mkIf cfg.enable (lib.mkMerge (
+    [
     # Base configuration (always applied when enabled)
     {
       assertions = [
@@ -319,5 +320,5 @@ in
         mode = "0400";
       };
     })
-  ]);
+  ]));
 }
