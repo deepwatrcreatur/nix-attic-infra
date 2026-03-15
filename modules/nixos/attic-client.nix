@@ -293,8 +293,11 @@ in
       };
     }
 
-    # SOPS backend configuration
-    (lib.mkIf (cfg.secretsBackend == "sops" && cfg.tokenFile != null && hasSops) {
+  ]
+  # SOPS backend configuration - only included when sops-nix module is available
+  # Using lib.optionals to completely exclude from merge when module not present
+  ++ lib.optionals (hasSops && cfg.secretsBackend == "sops" && cfg.tokenFile != null) [
+    {
       sops.secrets."attic-client-token" = {
         sopsFile = cfg.tokenFile;
         key = cfg.tokenKey;
@@ -303,16 +306,17 @@ in
         group = config.users.users.root.group;
         mode = "0400";
       };
-    })
-
-    # Agenix backend configuration
-    (lib.mkIf (cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null && hasAgenix) {
+    }
+  ]
+  # Agenix backend configuration - only included when agenix module is available
+  ++ lib.optionals (hasAgenix && cfg.secretsBackend == "agenix" && cfg.ageSecretFile != null) [
+    {
       age.secrets."attic-client-token" = {
         file = cfg.ageSecretFile;
         owner = cfg.ageSecretOwner;
         group = cfg.ageSecretGroup;
         mode = "0400";
       };
-    })
+    }
   ]);
 }
