@@ -21,8 +21,11 @@ let
       # Either managed by this module (tokenFile set) or externally
       "/run/secrets/attic-client-token"
     else if cfg.secretsBackend == "agenix" then
-      # Agenix backend: use the path from age.secrets
-      config.age.secrets."attic-client-token".path
+      # Agenix backend: use the path from age.secrets (guarded for safe evaluation)
+      # Falls back to default path if agenix not available, allowing assertions to fire
+      if hasAgenix && cfg.ageSecretFile != null
+      then config.age.secrets."attic-client-token".path
+      else "/run/agenix/attic-client-token"
     else
       # Manual backend ("none"): use user-provided path
       cfg.manualTokenPath;
