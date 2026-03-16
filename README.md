@@ -10,7 +10,9 @@ Opinionated Attic binary cache infrastructure that layers on top of the canonica
 - **Non-fatal error handling** that won't break your builds
 
 ### Enterprise Security
+- **Flexible secrets backends** - Choose between SOPS, agenix, or manual token management
 - **SOPS integration** for secure token management
+- **Agenix integration** for age-encrypted secrets
 - **Dynamic token substitution** during home-manager activation
 - **Multi-server authentication** with per-server token isolation
 
@@ -163,7 +165,45 @@ programs.attic-client = {
 
 ## Security Features
 
-### SOPS Integration
+### Secrets Backend Options
+
+The `attic-client` NixOS module supports multiple secrets backends:
+
+#### SOPS Integration (default)
+```nix
+services.attic-client = {
+  enable = true;
+  secretsBackend = "sops";  # default
+  tokenFile = ./secrets/attic-client-token.yaml.enc;
+  tokenKey = "ATTIC_CLIENT_JWT_TOKEN";
+  server = "http://attic-cache:5001";
+  cache = "cache-local";
+};
+```
+
+#### Agenix Integration
+```nix
+services.attic-client = {
+  enable = true;
+  secretsBackend = "agenix";
+  ageSecretFile = ./secrets/attic-client-token.age;
+  server = "http://attic-cache:5001";
+  cache = "cache-local";
+};
+```
+
+#### Manual Token Management
+```nix
+services.attic-client = {
+  enable = true;
+  secretsBackend = "none";
+  manualTokenPath = "/run/secrets/attic-client-token";
+  server = "http://attic-cache:5001";
+  cache = "cache-local";
+};
+```
+
+### SOPS Integration Details
 Seamlessly integrates with SOPS-nix for secure token management with permission hardening:
 
 ```nix
@@ -200,10 +240,12 @@ Built-in checks prevent common configuration mistakes:
 └─────────────────┘    └──────────────┘    └─────────────┘
                               │
                               ▼
-                       ┌──────────────┐
-                       │ SOPS Token   │
-                       │ Management   │
-                       └──────────────┘
+                    ┌───────────────────────────────┐
+                    │       Secrets Backend         │
+                    │  ┌─────┐ ┌───────┐ ┌────────┐ │
+                    │  │SOPS │ │agenix │ │ Manual │ │
+                    │  └─────┘ └───────┘ └────────┘ │
+                    └───────────────────────────────┘
 ```
 
 ### Multi-Server Setup

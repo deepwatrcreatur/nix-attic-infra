@@ -1,5 +1,5 @@
 {
-  description = "Production-ready Attic binary cache infrastructure with automated post-build hooks, SOPS secrets integration, and cross-platform client management";
+  description = "Production-ready Attic binary cache infrastructure with automated post-build hooks, SOPS/agenix secrets integration, and cross-platform client management";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
