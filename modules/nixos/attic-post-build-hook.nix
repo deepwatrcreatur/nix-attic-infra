@@ -15,6 +15,7 @@ let
   cfg = config.services.attic-post-build-hook;
 
   tokenFilePath = if cfg.tokenFile == null then "" else toString cfg.tokenFile;
+  runtimePathType = lib.types.nullOr (lib.types.either lib.types.str lib.types.path);
 
   postBuildScript = pkgs.writeShellScript "attic-post-build-hook" ''
         # NOTE: This script must never fail a build.
@@ -41,6 +42,11 @@ let
         token_file="${tokenFilePath}"
         if [ -z "$token_file" ] || [ ! -f "$token_file" ]; then
           echo "Attic: token file missing; skipping push" >&2
+          exit 0
+        fi
+
+        if [ ! -r "$token_file" ]; then
+          echo "Attic: token file not readable; skipping push" >&2
           exit 0
         fi
 
@@ -101,13 +107,14 @@ in
     };
 
     tokenFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
+      type = runtimePathType;
       default = null;
       description = ''
-        Path to a file containing the Attic token (plain text). If set, the
-        post-build hook generates an ephemeral config using this token.
+        Runtime path to a plain-text file containing the Attic token.
+        If set, the post-build hook reads this file at execution time and
+        generates an ephemeral Attic config outside the Nix store.
       '';
-      example = "/run/secrets/attic-client-token";
+      example = lib.literalExpression ''config.sops.secrets."attic-client-token".path'';
     };
 
     serverHostnames = lib.mkOption {
