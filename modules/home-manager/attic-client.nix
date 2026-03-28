@@ -9,6 +9,7 @@
 
 let
   cfg = config.programs.attic-client;
+  tokenPlaceholder = name: "@ATTIC_CLIENT_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] name)}@";
 in
 {
   options.programs.attic-client = {
@@ -80,44 +81,60 @@ in
     home.packages = [ pkgs.attic-client ];
 
     # Create Attic client configuration template
-    home.file.".config/attic/config.toml".text =
+    home.file.".config/attic/config.toml" = lib.mkIf cfg.tokenSubstitution {
+      text =
       let
         serverConfigs = lib.mapAttrsToList (name: server: ''
-          [servers.${name}]
+          [servers."${name}"]
           endpoint = "${server.endpoint}"
-          token = "@ATTIC_CLIENT_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] name)}@"
+          token = "${tokenPlaceholder name}"
         '') cfg.servers;
       in
       lib.concatStringsSep "\n\n" serverConfigs;
+    };
 
     # Home activation script to substitute tokens
     home.activation.attic-config = lib.mkIf cfg.tokenSubstitution (
       lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        $DRY_RUN_CMD mkdir -p ${config.home.homeDirectory}/.config/attic
+        config_dir=${lib.escapeShellArg "${config.home.homeDirectory}/.config/attic"}
+        config_file="$config_dir/config.toml"
 
-        if [[ -f ${config.home.homeDirectory}/.config/attic/config.toml ]]; then
-          config_file="${config.home.homeDirectory}/.config/attic/config.toml"
-          temp_file="/tmp/attic-config-$$.toml"
+        $DRY_RUN_CMD ${pkgs.coreutils}/bin/mkdir -p "$config_dir"
 
-          # Copy the template
-          cp "$config_file" "$temp_file"
+        if [[ -f "$config_file" ]]; then
+          if [[ -n "$DRY_RUN" ]]; then
+            $DRY_RUN_CMD ${pkgs.coreutils}/bin/printf '%s\n' "Attic client configuration would be updated with tokens"
+          else
+            temp_file="$(${pkgs.coreutils}/bin/mktemp "$config_dir/config.toml.tmp.XXXXXX")"
+            trap '${pkgs.coreutils}/bin/rm -f "$temp_file" "$temp_file.rendered"' EXIT
 
-          ${lib.concatStringsSep "\n          " (
-            lib.mapAttrsToList (name: server: ''
-              # Substitute token for ${name}
-              if [[ -f "${server.tokenPath}" ]]; then
-                token=$(cat "${server.tokenPath}")
-                placeholder="@ATTIC_CLIENT_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] name)}@"
-                $DRY_RUN_CMD sed -i "s|$placeholder|$token|g" "$temp_file"
-              else
-                $VERBOSE_ECHO "Warning: Token file not found for ${name}: ${server.tokenPath}"
-              fi
-            '') cfg.servers
-          )}
+            # Copy the template
+            ${pkgs.coreutils}/bin/cp "$config_file" "$temp_file"
 
-          # Move the configured file into place
-          $DRY_RUN_CMD mv "$temp_file" "$config_file"
-          $VERBOSE_ECHO "Attic client configuration updated with tokens"
+            ${lib.concatStringsSep "\n            " (
+              lib.mapAttrsToList (name: server: ''
+                # Substitute token for ${name}
+                if [[ -f "${server.tokenPath}" ]]; then
+                  if [[ ! -r "${server.tokenPath}" ]]; then
+                    $VERBOSE_ECHO "Warning: Token file not readable for ${name}: ${server.tokenPath}"
+                  else
+                    token="$(${pkgs.coreutils}/bin/cat "${server.tokenPath}")"
+                    placeholder=${lib.escapeShellArg (tokenPlaceholder name)}
+                    escaped_token=$(printf '%s' "$token" | ${pkgs.gnused}/bin/sed 's/[\\&|]/\\&/g')
+                    ${pkgs.gnused}/bin/sed "s|$placeholder|$escaped_token|g" "$temp_file" > "$temp_file.rendered"
+                    ${pkgs.coreutils}/bin/mv "$temp_file.rendered" "$temp_file"
+                  fi
+                else
+                  $VERBOSE_ECHO "Warning: Token file not found for ${name}: ${server.tokenPath}"
+                fi
+              '') cfg.servers
+            )}
+
+            # Move the configured file into place
+            ${pkgs.coreutils}/bin/mv "$temp_file" "$config_file"
+            trap - EXIT
+            $VERBOSE_ECHO "Attic client configuration updated with tokens"
+          fi
         fi
       ''
     );
@@ -136,8 +153,8 @@ in
           lib.flatten (
             lib.mapAttrsToList (serverName: server:
               map (aliasName: {
-                "attic-push-${aliasName}" = "attic push ${aliasName}";
-                "attic-pull-${aliasName}" = "attic pull ${aliasName}";
+                "attic-push-${aliasName}" = "attic push ${serverName}:${aliasName}";
+                "attic-pull-${aliasName}" = "attic pull ${serverName}:${aliasName}";
               }) server.aliases
             ) cfg.servers
           )
