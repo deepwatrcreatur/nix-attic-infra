@@ -102,37 +102,39 @@ in
         $DRY_RUN_CMD ${pkgs.coreutils}/bin/mkdir -p "$config_dir"
 
         if [[ -f "$config_file" ]]; then
-          temp_file="$(${pkgs.coreutils}/bin/mktemp "$config_dir/config.toml.tmp.XXXXXX")"
+          if [[ -n "$DRY_RUN" ]]; then
+            $DRY_RUN_CMD ${pkgs.coreutils}/bin/printf '%s\n' "Attic client configuration would be updated with tokens"
+          else
+            temp_file="$(${pkgs.coreutils}/bin/mktemp "$config_dir/config.toml.tmp.XXXXXX")"
+            trap '${pkgs.coreutils}/bin/rm -f "$temp_file" "$temp_file.rendered"' EXIT
 
-          # Copy the template
-          ${pkgs.coreutils}/bin/cp "$config_file" "$temp_file"
+            # Copy the template
+            ${pkgs.coreutils}/bin/cp "$config_file" "$temp_file"
 
-          ${lib.concatStringsSep "\n          " (
-            lib.mapAttrsToList (name: server: ''
-              # Substitute token for ${name}
-              if [[ -f "${server.tokenPath}" ]]; then
-                if [[ ! -r "${server.tokenPath}" ]]; then
-                  $VERBOSE_ECHO "Warning: Token file not readable for ${name}: ${server.tokenPath}"
-                else
-                  token="$(${pkgs.coreutils}/bin/cat "${server.tokenPath}")"
-                  placeholder=${lib.escapeShellArg (tokenPlaceholder name)}
-                  escaped_token=$(printf '%s' "$token" | ${pkgs.gnused}/bin/sed 's/[&|]/\\&/g')
-                  if [[ -n "$DRY_RUN" ]]; then
-                    $DRY_RUN_CMD ${pkgs.coreutils}/bin/printf '%s\n' "${name}: token substitution skipped in dry-run"
+            ${lib.concatStringsSep "\n            " (
+              lib.mapAttrsToList (name: server: ''
+                # Substitute token for ${name}
+                if [[ -f "${server.tokenPath}" ]]; then
+                  if [[ ! -r "${server.tokenPath}" ]]; then
+                    $VERBOSE_ECHO "Warning: Token file not readable for ${name}: ${server.tokenPath}"
                   else
+                    token="$(${pkgs.coreutils}/bin/cat "${server.tokenPath}")"
+                    placeholder=${lib.escapeShellArg (tokenPlaceholder name)}
+                    escaped_token=$(printf '%s' "$token" | ${pkgs.gnused}/bin/sed 's/[\\&|]/\\&/g')
                     ${pkgs.gnused}/bin/sed "s|$placeholder|$escaped_token|g" "$temp_file" > "$temp_file.rendered"
                     ${pkgs.coreutils}/bin/mv "$temp_file.rendered" "$temp_file"
                   fi
+                else
+                  $VERBOSE_ECHO "Warning: Token file not found for ${name}: ${server.tokenPath}"
                 fi
-              else
-                $VERBOSE_ECHO "Warning: Token file not found for ${name}: ${server.tokenPath}"
-              fi
-            '') cfg.servers
-          )}
+              '') cfg.servers
+            )}
 
-          # Move the configured file into place
-          $DRY_RUN_CMD ${pkgs.coreutils}/bin/mv "$temp_file" "$config_file"
-          $VERBOSE_ECHO "Attic client configuration updated with tokens"
+            # Move the configured file into place
+            ${pkgs.coreutils}/bin/mv "$temp_file" "$config_file"
+            trap - EXIT
+            $VERBOSE_ECHO "Attic client configuration updated with tokens"
+          fi
         fi
       ''
     );
