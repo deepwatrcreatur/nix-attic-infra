@@ -66,7 +66,6 @@
 
           (nix-attic-infra.lib.mkPostBuildHook {
             cacheName = "my-cache";
-            user = "builder";
           })
 
           {
