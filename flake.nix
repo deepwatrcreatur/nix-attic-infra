@@ -24,7 +24,6 @@
     , home-manager
     , attic
     , attic-observatory
-    ,
     }:
     flake-utils.lib.eachDefaultSystem
       (
@@ -53,9 +52,9 @@
           mkEvalCheck =
             name: value:
             pkgs.runCommand name { } ''
-              cat > "$out" <<'EOF'
+              cat > "$out" <<'NIX_ATTIC_INFRA_EVAL_CHECK_EOF'
               ${builtins.toJSON value}
-              EOF
+              NIX_ATTIC_INFRA_EVAL_CHECK_EOF
             '';
         in
         {
