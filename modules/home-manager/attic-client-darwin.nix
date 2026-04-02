@@ -5,20 +5,19 @@
 { config, lib, ... }:
 
 {
-  # Enable attic-client by default on macOS systems
-  # The attic-client package works directly without requiring system services
-  programs.attic-client.enable = lib.mkDefault true;
-
   # Enable user Nix configuration for Determinate Nix systems
   # This is commonly used on macOS for enhanced Nix functionality
   services.nix-user-config.enable = lib.mkDefault true;
 
   # macOS-specific configuration optimizations
-  programs.attic-client = lib.mkIf config.programs.attic-client.enable {
-    # Disable shell aliases that might conflict with macOS conventions
+  programs.attic-client = {
+    # Enable attic-client by default on macOS systems.
+    enable = lib.mkDefault true;
+
+    # Keep aliases enabled unless the consumer overrides them.
     enableShellAliases = lib.mkDefault true;
 
-    # Enable token substitution (works well with macOS keychain integration via SOPS)
+    # Token substitution works well with macOS keychain-backed secret flows.
     tokenSubstitution = lib.mkDefault true;
   };
 

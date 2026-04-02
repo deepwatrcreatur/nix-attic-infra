@@ -60,24 +60,6 @@ Why this matters:
 Suggested PR:
 - `docs/align-examples-with-current-api`
 
-## Priority 4: Stronger flake checks
-
-Problem:
-- The current `checks.modules-eval` only verifies that `nixosModules` can be imported and listed.
-- It does not exercise module evaluation paths, option defaults, example templates, or Home Manager integration.
-
-Proposed change:
-- Expand checks to evaluate representative NixOS configurations using the shipped modules.
-- Optionally add lightweight template evaluation checks.
-- Add Home Manager evaluation if the repo is willing to take a `home-manager` input for CI purposes.
-
-Why this matters:
-- Catches regressions before release.
-- Protects example-driven consumers from stale module contracts.
-
-Suggested PR:
-- `ci/expand-flake-evaluation-checks`
-
 ## Priority 5: Observatory dependency flexibility
 
 Problem:
