@@ -222,7 +222,7 @@
               home-manager-attic-client-config-toml =
                 let
                   configTomlText = homeManagerAtticClient.config.home.file.".config/attic/config.toml".text;
-                  tokenPlaceholder = name: "@ATTIC_CLIENT_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" "." ] [ "_" "_" ] name)}_${builtins.substring 0 8 (builtins.hashString "sha256" name)}@";
+                  tokenPlaceholder = name: "@NIX_ATTIC_INFRA_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" "." ] [ "_" "_" ] name)}_${builtins.substring 0 8 (builtins.hashString "sha256" name)}@";
                 in
                 mkAssert "home-manager-attic-client-config-toml"
                   (lib.hasInfix ''[servers."cache-prod"]'' configTomlText &&
@@ -258,7 +258,7 @@
               home-manager-attic-client-activation =
                 let
                   activationScript = homeManagerAtticClient.config.home.activation.attic-config.data;
-                  tokenPlaceholder = name: "@ATTIC_CLIENT_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" "." ] [ "_" "_" ] name)}_${builtins.substring 0 8 (builtins.hashString "sha256" name)}@";
+                  tokenPlaceholder = name: "@NIX_ATTIC_INFRA_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" "." ] [ "_" "_" ] name)}_${builtins.substring 0 8 (builtins.hashString "sha256" name)}@";
                 in
                 mkAssert "home-manager-attic-client-activation"
                   (lib.hasInfix "# Substitute token for cache-prod" activationScript &&

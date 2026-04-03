@@ -11,7 +11,7 @@ let
   darwinConfigTemplate = homeManagerAtticClientDarwin.config.home.file.".config/attic/config.toml".text;
 
   # Token placeholder logic (must match the module)
-  tokenPlaceholder = name: "@ATTIC_CLIENT_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" "." ] [ "_" "_" ] name)}_${builtins.substring 0 8 (builtins.hashString "sha256" name)}@";
+  tokenPlaceholder = name: "@NIX_ATTIC_INFRA_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" "." ] [ "_" "_" ] name)}_${builtins.substring 0 8 (builtins.hashString "sha256" name)}@";
 
 in
 pkgs.runCommand "test-activation-harness"
