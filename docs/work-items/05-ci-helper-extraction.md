@@ -1,6 +1,6 @@
 # CI Helper Extraction
 
-Status: `in-progress`
+Status: `done`
 Suggested branch: `refactor/ci-helper-extraction`
 Priority: `medium`
 
