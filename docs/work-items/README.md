@@ -32,6 +32,9 @@ Highest value first:
 4. `04-docs-consistency-guardrails.md` (done)
 5. `05-ci-helper-extraction.md` (done)
 6. `06-observatory-optional-atticd-dependency.md` (done)
+7. `07-hardened-token-substitution.md` (ready)
+8. `08-dry-run-verification.md` (ready)
+9. `09-post-build-hook-diagnostics.md` (ready)
 
 ## Why This Structure
 
