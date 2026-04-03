@@ -28,7 +28,6 @@ Perfect for build servers that should automatically populate caches:
   services.attic-post-build-hook = {
     enable = true;
     cacheName = "my-org-cache";
-    user = "builder";
     # Excludes hosts running atticd to prevent circular uploads
     serverHostnames = [ "cache-server" "atticd" ];
   };
@@ -97,7 +96,6 @@ Simplify configuration with built-in helpers:
     nix-attic-infra.nixosModules.attic-post-build-hook
     (nix-attic-infra.lib.mkPostBuildHook {
       cacheName = "team-cache";
-      user = "builder";
     })
     (nix-attic-infra.lib.mkAtticClient {
       servers = {

@@ -57,7 +57,6 @@ Centralized cache management across multiple development and production environm
           services.attic-post-build-hook = {
             enable = true;
             cacheName = "my-team-cache";
-            user = "builder";
           };
         }
       ];

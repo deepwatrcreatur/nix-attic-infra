@@ -191,6 +191,10 @@
                 nixUserConfigEnable = homeManagerAtticClientDarwin.config.services.nix-user-config.enable;
                 hasPermissionsActivation = builtins.hasAttr "attic-darwin-permissions" homeManagerAtticClientDarwin.config.home.activation;
               };
+
+              docs-consistency = import ./tests/docs-consistency.nix {
+                inherit pkgs lib self;
+              };
             };
         }
       )
