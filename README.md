@@ -265,6 +265,9 @@ Built-in checks prevent common configuration mistakes:
 
 This project aims to provide production-ready Attic infrastructure. Contributions are welcome!
 
+If you are assigning or running coding agents, start with the agent work queue:
+- [`docs/work-items/START-HERE.md`](docs/work-items/START-HERE.md)
+
 ### Areas for Enhancement
 - Additional storage backend templates
 - Enhanced monitoring and logging options
