@@ -1,6 +1,6 @@
 # Hardened Token Substitution
 
-Status: `in-progress`
+Status: `done`
 Suggested branch: `feat/hardened-token-substitution`
 Priority: `medium`
 
