@@ -1,6 +1,6 @@
 # Linux Darwin Activation Harness
 
-Status: `ready`
+Status: `done`
 Suggested branch: `test/linux-darwin-activation-harness`
 Priority: `high`
 
