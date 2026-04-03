@@ -29,30 +29,49 @@ let
           exit 0
         fi
 
-        echo "Attic post-build hook triggered" >&2
-        echo "  DRV_PATH: $drv_path" >&2
-        echo "  OUT_PATHS: $out_paths" >&2
+        log() {
+          echo "Attic: \$*" >&2
+        }
+
+        verbose_log() {
+          if [[ "${if cfg.verbose then "1" else ""}" == "1" ]]; then
+            log "DEBUG: \$*"
+          fi
+        }
+
+        verbose_log "Post-build hook triggered"
+        verbose_log "  DRV_PATH: \$drv_path"
+        verbose_log "  OUT_PATHS: \$out_paths"
 
         # Skip source/temporary derivations.
         if [[ "$drv_path" == *"-source.drv" ]] || [[ "$drv_path" == *"tmp"* ]]; then
-          echo "Skipping source/temporary derivation: $drv_path" >&2
+          verbose_log "Skipping source/temporary derivation: \$drv_path"
           exit 0
         fi
 
+        # Check if we should skip this build based on server hostnames
+        # This prevents circular dependencies if the current host is a cache server
+        for host in ${lib.concatStringsSep " " cfg.serverHostnames}; do
+          if [[ "${config.networking.hostName}" == "$host" ]]; then
+            verbose_log "Skipping push: current host ($host) is in serverHostnames list"
+            exit 0
+          fi
+        done
+
         token_file="${tokenFilePath}"
         if [ -z "$token_file" ] || [ ! -f "$token_file" ]; then
-          echo "Attic: token file missing; skipping push" >&2
+          log "WARNING: token file missing (\$token_file); skipping push"
           exit 0
         fi
 
         if [ ! -r "$token_file" ]; then
-          echo "Attic: token file not readable; skipping push" >&2
+          log "WARNING: token file not readable (\$token_file); skipping push"
           exit 0
         fi
 
         token="$(${pkgs.coreutils}/bin/cat "$token_file" 2>/dev/null || true)"
         if [ -z "$token" ]; then
-          echo "Attic: token empty; skipping push" >&2
+          log "WARNING: token empty; skipping push"
           exit 0
         fi
 
@@ -63,25 +82,23 @@ let
         export XDG_CONFIG_HOME="$tmpdir"
         ${pkgs.coreutils}/bin/mkdir -p "$XDG_CONFIG_HOME/attic"
 
-        token=""
-        if [[ -f "${cfg.tokenFile}" ]]; then
-          token="$(${pkgs.coreutils}/bin/cat "${cfg.tokenFile}")"
-        fi
+        verbose_log "Generating ephemeral config using server: ${cfg.serverName}"
 
         ${pkgs.coreutils}/bin/cat > "$XDG_CONFIG_HOME/attic/config.toml" <<EOF
 [servers."${cfg.serverName}"]
 endpoint = "${cfg.serverEndpoint}"
+token = "$token"
 EOF
 
-        if [[ -n "$token" ]]; then
-          echo "token = \"$token\"" >> "$XDG_CONFIG_HOME/attic/config.toml"
-        fi
-
-        echo "Attic: pushing to ${cfg.serverName}:${cfg.cacheName} (${cfg.serverEndpoint})" >&2
+        log "pushing to ${cfg.serverName}:${cfg.cacheName} (${cfg.serverEndpoint})"
 
         # Batch push for efficiency.
         # shellcheck disable=SC2086
-        ${pkgs.attic-client}/bin/attic push "${cfg.serverName}:${cfg.cacheName}" $out_paths 2>&1 || true
+        if [[ "${if cfg.verbose then "1" else ""}" == "1" ]]; then
+          ${pkgs.attic-client}/bin/attic push "${cfg.serverName}:${cfg.cacheName}" $out_paths 2>&1 | while read -r line; do log "CLIENT: \$line"; done
+        else
+          ${pkgs.attic-client}/bin/attic push "${cfg.serverName}:${cfg.cacheName}" $out_paths >/dev/null 2>&1 || true
+        fi
 
         exit 0
   '';
@@ -136,6 +153,12 @@ in
         List of hostnames running atticd that should not have post-build hooks enabled
         to prevent circular dependencies.
       '';
+    };
+
+    verbose = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Whether to enable verbose diagnostic logging for the post-build hook.";
     };
   };
 
