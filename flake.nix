@@ -31,31 +31,8 @@
         let
           pkgs = nixpkgs.legacyPackages.${system};
           lib = nixpkgs.lib;
-          evalNixos =
-            modules:
-            lib.nixosSystem {
-              inherit system;
-              modules = modules ++ [{ nixpkgs.hostPlatform = system; }];
-            };
-          evalHomeManager =
-            modules:
-            home-manager.lib.homeManagerConfiguration {
-              inherit pkgs;
-              modules = modules ++ [
-                {
-                  home.username = "ci";
-                  home.homeDirectory = "/home/ci";
-                  home.stateVersion = "25.11";
-                }
-              ];
-            };
-          mkEvalCheck =
-            name: value:
-            pkgs.runCommand name { } ''
-              cat > "$out" <<'NIX_ATTIC_INFRA_EVAL_CHECK_EOF'
-              ${builtins.toJSON value}
-              NIX_ATTIC_INFRA_EVAL_CHECK_EOF
-            '';
+          ciHelpers = import ./ci/helpers.nix { inherit pkgs lib home-manager system; };
+          inherit (ciHelpers) evalNixos evalHomeManager mkEvalCheck mkAssert;
         in
         {
           packages = {
