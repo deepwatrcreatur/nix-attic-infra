@@ -83,3 +83,56 @@ Suggested PR:
 3. Sweep docs so examples reflect the corrected behavior.
 4. Improve CI checks once the public API is in better shape.
 5. Revisit observatory flexibility as a feature PR.
+
+## April 2026 retrospective: critique of recent work
+
+### What is going well
+
+- **Evaluation coverage expanded in the right places.** The latest flake checks now exercise both NixOS and Home Manager module paths (including Darwin evaluation), which raises confidence that module options compose cleanly across supported platforms.
+- **Recent fixes targeted user-facing correctness issues.** The Home Manager alias namespace correction and token substitution portability improvements remove concrete foot-guns that would otherwise surface during normal `attic push/pull` usage.
+- **Roadmap-first delivery is helping scope.** The pattern of documenting improvement priorities before implementation is reducing random churn and has produced focused PRs.
+
+### Main gaps still visible
+
+1. **Checks validate evaluation shape, not behavioral outcomes.**
+   - Current checks mostly assert that attributes exist and can be evaluated.
+   - They do not yet validate generated file content semantics (e.g., exact shell alias commands, final rendered TOML, token substitution edge cases).
+
+2. **Cross-platform shell execution risk remains under-tested.**
+   - While GNU-specific `sed -i` usage was removed, the activation scripts still rely on non-trivial shell flows that are easy to regress differently on Linux vs Darwin.
+   - There is no dedicated matrix that actually runs activation snippets in both environments.
+
+3. **Module contract testing is not yet encoded as a stable interface.**
+   - The flake exports a useful `lib` surface (`mkAtticClient`, `mkPostBuildHook`), but there are no contract-style checks to lock expected argument behavior and output structure.
+
+4. **Documentation drift risk is still structural.**
+   - Docs were recently improved, but the repo still lacks a lightweight mechanism to ensure example snippets stay synchronized with module options and helper signatures.
+
+### Suggested direction for improvement (next 2-3 PRs)
+
+1. **Add behavior-oriented tests for generated artifacts (highest ROI).**
+   - Introduce checks that assert:
+     - generated Home Manager `config.toml` contains quoted server keys;
+     - alias commands always include `<server>:<cache>`;
+     - token placeholder replacement is idempotent and safe for special characters.
+   - Keep these as fast evaluation/build-time tests that avoid external services.
+
+2. **Create a minimal Linux/Darwin activation test harness.**
+   - Add one scriptable fixture per platform that executes the activation fragment with fake token files and verifies final file outputs/permissions.
+   - This converts portability from a claim into a continuously verified property.
+
+3. **Formalize API compatibility expectations for `lib` helpers.**
+   - Add checks around `lib.mkAtticClient` and `lib.mkPostBuildHook` outputs to prevent silent interface regressions.
+   - Document compatibility intent (e.g., semver-like expectations for helper arguments) in README or ARCHITECTURE.
+
+4. **Add docs consistency guardrails.**
+   - For examples, add a lightweight CI step that at least evaluates each template and key module composition shown in README/INTEGRATION.
+   - Prefer "executable docs" style snippets where practical.
+
+### Success metrics to track
+
+- Mean time from bug report to reproducer test added.
+- Number of regressions caught by CI before merge (especially Home Manager activation and Darwin compatibility).
+- Ratio of docs examples that are continuously evaluated in checks.
+
+This direction keeps the current momentum (small, reviewable PRs), while shifting quality from "it evaluates" toward "it behaves correctly under real usage patterns." 
