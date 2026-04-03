@@ -1,6 +1,6 @@
 # Docs Consistency Guardrails
 
-Status: `ready`
+Status: `done`
 Suggested branch: `docs/docs-consistency-guardrails`
 Priority: `medium`
 
