@@ -110,6 +110,16 @@
                   };
                 }
               ];
+              nixosAtticObservatoryNoAtticd = evalNixos [
+                self.nixosModules.attic-observatory
+                {
+                  system.stateVersion = "25.11";
+                  services.attic-observatory = {
+                    enable = true;
+                    dependOnAtticd = false;
+                  };
+                }
+              ];
               homeManagerAtticClient = evalHomeManager [
                 self.homeManagerModules.attic-client
                 {
@@ -195,6 +205,12 @@
                 firewallPorts = nixosAtticObservatory.config.networking.firewall.allowedTCPPorts;
                 nginxHost = builtins.attrNames nixosAtticObservatory.config.services.nginx.virtualHosts;
                 timerExists = builtins.hasAttr "attic-observatory-db-sync" nixosAtticObservatory.config.systemd.timers;
+                hasAtticdDep = builtins.elem "atticd.service" nixosAtticObservatory.config.systemd.services.attic-observatory.after;
+              };
+
+              nixos-attic-observatory-no-atticd-eval = mkEvalCheck "nixos-attic-observatory-no-atticd-eval" {
+                dependOnAtticd = nixosAtticObservatoryNoAtticd.config.services.attic-observatory.dependOnAtticd;
+                hasAtticdDep = builtins.elem "atticd.service" nixosAtticObservatoryNoAtticd.config.systemd.services.attic-observatory.after;
               };
 
               home-manager-attic-client-eval = mkEvalCheck "home-manager-attic-client-eval" {
