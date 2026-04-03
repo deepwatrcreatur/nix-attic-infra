@@ -56,6 +56,16 @@
               ${builtins.toJSON value}
               NIX_ATTIC_INFRA_EVAL_CHECK_EOF
             '';
+
+          # Assertion helper that fails the build if the condition is false
+          mkAssert = name: condition: msg:
+            if condition then
+              pkgs.runCommand "assertion-${name}" { } "touch $out"
+            else
+              pkgs.runCommand "assertion-${name}-failed" { } ''
+                echo "Assertion failed for ${name}: ${msg}" >&2
+                exit 1
+              '';
         in
         {
           packages = {
@@ -161,6 +171,19 @@
                   };
                 }
               ];
+
+              # Library helper outputs for contract checking
+              libMkAtticClient = self.lib.mkAtticClient {
+                servers = {
+                  test = {
+                    endpoint = "https://test.example.com";
+                    tokenPath = "/tmp/token";
+                  };
+                };
+              };
+              libMkPostBuildHook = self.lib.mkPostBuildHook {
+                cacheName = "test-cache";
+              };
             in
             {
               nixos-attic-client-eval = mkEvalCheck "nixos-attic-client-eval" {
@@ -191,6 +214,21 @@
                 nixUserConfigEnable = homeManagerAtticClientDarwin.config.services.nix-user-config.enable;
                 hasPermissionsActivation = builtins.hasAttr "attic-darwin-permissions" homeManagerAtticClientDarwin.config.home.activation;
               };
+
+              # Library contract checks
+              lib-mkAtticClient-contract = mkAssert "lib-mkAtticClient-contract"
+                (libMkAtticClient.programs.attic-client.enable == true &&
+                libMkAtticClient.programs.attic-client.servers.test.endpoint == "https://test.example.com")
+                "lib.mkAtticClient should return expected configuration structure";
+
+              lib-mkPostBuildHook-contract = mkAssert "lib-mkPostBuildHook-contract"
+                (libMkPostBuildHook.services.attic-post-build-hook.enable == true &&
+                libMkPostBuildHook.services.attic-post-build-hook.cacheName == "test-cache")
+                "lib.mkPostBuildHook should return expected configuration structure";
+
+              lib-commonServers-contract = mkAssert "lib-commonServers-contract"
+                (self.lib.commonServers.local.endpoint == "http://localhost:8080")
+                "lib.commonServers.local should have expected endpoint";
             };
         }
       )
