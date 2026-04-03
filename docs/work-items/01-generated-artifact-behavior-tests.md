@@ -1,6 +1,6 @@
 # Generated Artifact Behavior Tests
 
-Status: `ready`
+Status: `done`
 Suggested branch: `test/generated-artifact-behavior`
 Priority: `very high`
 
