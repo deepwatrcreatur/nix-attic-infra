@@ -88,9 +88,9 @@ Suggested PR:
 
 ### What is going well
 
-- **Evaluation coverage expanded in the right places.** The latest flake checks now exercise both NixOS and Home Manager module paths (including Darwin evaluation), which raises confidence that module options compose cleanly across supported platforms.
-- **Recent fixes targeted user-facing correctness issues.** The Home Manager alias namespace correction and token substitution portability improvements remove concrete foot-guns that would otherwise surface during normal `attic push/pull` usage.
-- **Roadmap-first delivery is helping scope.** The pattern of documenting improvement priorities before implementation is reducing random churn and has produced focused PRs.
+- **Evaluation coverage expanded in the right places.** PR `#9` (`cfa2bda`) added flake checks that exercise both NixOS and Home Manager module paths, including the `home-manager-attic-client-darwin-eval` path now visible in CI.
+- **Recent fixes targeted user-facing correctness issues.** PR `#7` (`afb183f`) corrected Home Manager alias namespacing and hardened token-substitution portability so normal `attic push/pull` usage is less error-prone.
+- **Roadmap-first delivery is helping scope.** PR `#6` (`d23701b`) established the staged improvement roadmap first, and the follow-up fixes in `#7`, `#8`, and `#9` landed as smaller reviewable slices instead of one mixed refactor.
 
 ### Main gaps still visible
 
@@ -108,7 +108,7 @@ Suggested PR:
 4. **Documentation drift risk is still structural.**
    - Docs were recently improved, but the repo still lacks a lightweight mechanism to ensure example snippets stay synchronized with module options and helper signatures.
 
-### Suggested direction for improvement (next 2-3 PRs)
+### Suggested direction for improvement (next few PRs)
 
 1. **Add behavior-oriented tests for generated artifacts (highest ROI).**
    - Introduce checks that assert:
@@ -128,6 +128,10 @@ Suggested PR:
 4. **Add docs consistency guardrails.**
    - For examples, add a lightweight CI step that at least evaluates each template and key module composition shown in README/INTEGRATION.
    - Prefer "executable docs" style snippets where practical.
+
+5. **Move growing CI helper logic out of `flake.nix`.**
+   - As checks expand, extract eval/check constructors into a small `./ci/` helper layer.
+   - Keep flake outputs readable while preserving the stronger coverage added in `#9`.
 
 ### Success metrics to track
 
