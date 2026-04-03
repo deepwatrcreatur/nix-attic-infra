@@ -22,7 +22,6 @@
             services.attic-post-build-hook = {
               enable = true;
               cacheName = "my-team-cache";
-              user = "builder";
 
               # Optional: customize server hostnames to exclude
               serverHostnames = [ "atticd" "cache-server" "my-cache-server" ];

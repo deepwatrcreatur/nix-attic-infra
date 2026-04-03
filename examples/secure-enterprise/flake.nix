@@ -48,7 +48,6 @@
             services.attic-post-build-hook = {
               enable = true;
               cacheName = "production";
-              user = "developer";
             };
 
             # Create developer user
