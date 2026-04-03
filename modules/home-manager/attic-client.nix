@@ -100,11 +100,13 @@ in
         config_dir=${lib.escapeShellArg "${config.home.homeDirectory}/.config/attic"}
         config_file="$config_dir/config.toml"
 
-        $DRY_RUN_CMD ${pkgs.coreutils}/bin/mkdir -p "$config_dir"
+        if [[ ! -v DRY_RUN ]]; then
+          $DRY_RUN_CMD ${pkgs.coreutils}/bin/mkdir -p "$config_dir"
+        fi
 
         if [[ -f "$config_file" ]]; then
-          if [[ -n "$DRY_RUN" ]]; then
-            $DRY_RUN_CMD ${pkgs.coreutils}/bin/printf '%s\n' "Attic client configuration would be updated with tokens"
+          if [[ -v DRY_RUN ]]; then
+            echo "DRY_RUN: Attic client configuration would be updated with tokens"
           else
             temp_file="$(${pkgs.coreutils}/bin/mktemp "$config_dir/config.toml.tmp.XXXXXX")"
             trap '${pkgs.coreutils}/bin/rm -f "$temp_file" "$temp_file.rendered"' EXIT

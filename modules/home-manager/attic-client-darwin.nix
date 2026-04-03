@@ -24,8 +24,10 @@
   # Ensure attic configuration directory has proper permissions on macOS
   home.activation.attic-darwin-permissions = lib.mkIf config.programs.attic-client.enable (
     lib.hm.dag.entryBefore [ "attic-config" ] ''
-      $DRY_RUN_CMD mkdir -p -- "${config.home.homeDirectory}/.config/attic"
-      $DRY_RUN_CMD chmod 700 -- "${config.home.homeDirectory}/.config/attic"
+      if [[ ! -v DRY_RUN ]]; then
+        $DRY_RUN_CMD mkdir -p -- "${config.home.homeDirectory}/.config/attic"
+        $DRY_RUN_CMD chmod 700 -- "${config.home.homeDirectory}/.config/attic"
+      fi
     ''
   );
 }

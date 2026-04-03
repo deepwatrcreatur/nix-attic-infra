@@ -25,9 +25,9 @@ pkgs.runCommand "test-activation-harness"
   mkdir -p "$HOME/.config/attic"
 
   # Stub HM variables
-  export DRY_RUN_CMD=""
   export DRY_RUN=""
   export VERBOSE_ECHO="echo"
+  export DRY_RUN_CMD="eval"
 
   echo "Test 1: Linux activation script"
   (
@@ -35,6 +35,9 @@ pkgs.runCommand "test-activation-harness"
     cat > "$HOME/.config/attic/config.toml" <<'EOF'
 ${configTemplate}
 EOF
+
+    # Save original template for dry-run comparison
+    cp "$HOME/.config/attic/config.toml" "$HOME/.config/attic/config.toml.orig"
 
     # Create fake tokens at expected paths
     mkdir -p "$HOME/tokens"
@@ -60,8 +63,16 @@ EOF
 ${linuxScript}
 EOF
 )
-    echo "Executing fixed script..."
-    bash -c "$fixed_script"
+
+    echo "1.1: Verifying Linux DRY_RUN behavior..."
+    (DRY_RUN=1; bash -c "$fixed_script") | grep "DRY_RUN: Attic client configuration would be updated with tokens"
+    if ! diff "$HOME/.config/attic/config.toml" "$HOME/.config/attic/config.toml.orig"; then
+      echo "DRY_RUN failed: config.toml was modified"
+      exit 1
+    fi
+
+    echo "1.2: Executing real activation..."
+    (unset DRY_RUN; DRY_RUN_CMD='eval' bash -c "$fixed_script")
 
     echo "Verifying outputs..."
     grep "token = \"secret-prod-token\"" "$HOME/.config/attic/config.toml"
@@ -87,8 +98,15 @@ ${darwinScript}
 EOF
 )
 
+    echo "2.1: Verifying Darwin DRY_RUN behavior..."
+    (DRY_RUN=1; bash -c "$fixed_perms_script")
+    if [ -d "$HOME/.config/attic" ]; then
+      echo "DRY_RUN failed: .config/attic was created"
+      exit 1
+    fi
+
     echo "Executing Darwin permissions script..."
-    bash -c "$fixed_perms_script"
+    (unset DRY_RUN; DRY_RUN_CMD='eval' bash -c "$fixed_perms_script")
 
     # Check directory permissions (chmod 700)
     # In Nix build environment, permissions might be tricky, but let's try.
@@ -102,11 +120,19 @@ EOF
     cat > "$HOME/.config/attic/config.toml" <<'EOF'
 ${darwinConfigTemplate}
 EOF
+    cp "$HOME/.config/attic/config.toml" "$HOME/.config/attic/config.toml.orig"
     mkdir -p "$HOME/.config/attic"
     echo "darwin-secret-token" > "$HOME/.config/attic/token"
 
+    echo "2.2: Verifying Darwin DRY_RUN token substitution..."
+    (DRY_RUN=1; bash -c "$fixed_darwin_script") | grep "DRY_RUN: Attic client configuration would be updated with tokens"
+    if ! diff "$HOME/.config/attic/config.toml" "$HOME/.config/attic/config.toml.orig"; then
+      echo "DRY_RUN failed: Darwin config.toml was modified"
+      exit 1
+    fi
+
     echo "Executing Darwin activation script..."
-    bash -c "$fixed_darwin_script"
+    (unset DRY_RUN; DRY_RUN_CMD='eval' bash -c "$fixed_darwin_script")
 
     grep "token = \"darwin-secret-token\"" "$HOME/.config/attic/config.toml"
   )

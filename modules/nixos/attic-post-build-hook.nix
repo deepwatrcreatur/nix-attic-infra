@@ -63,11 +63,19 @@ let
         export XDG_CONFIG_HOME="$tmpdir"
         ${pkgs.coreutils}/bin/mkdir -p "$XDG_CONFIG_HOME/attic"
 
+        token=""
+        if [[ -f "${cfg.tokenFile}" ]]; then
+          token="$(${pkgs.coreutils}/bin/cat "${cfg.tokenFile}")"
+        fi
+
         ${pkgs.coreutils}/bin/cat > "$XDG_CONFIG_HOME/attic/config.toml" <<EOF
-    [servers."${cfg.serverName}"]
-    endpoint = "${cfg.serverEndpoint}"
-    token = "$token"
-    EOF
+[servers."${cfg.serverName}"]
+endpoint = "${cfg.serverEndpoint}"
+EOF
+
+        if [[ -n "$token" ]]; then
+          echo "token = \"$token\"" >> "$XDG_CONFIG_HOME/attic/config.toml"
+        fi
 
         echo "Attic: pushing to ${cfg.serverName}:${cfg.cacheName} (${cfg.serverEndpoint})" >&2
 
