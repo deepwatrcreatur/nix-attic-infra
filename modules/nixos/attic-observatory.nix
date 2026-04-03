@@ -113,6 +113,16 @@ in
       default = false;
       description = "Whether to open the nginx UI port in the firewall.";
     };
+
+    dependOnAtticd = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Whether to depend on the local atticd.service.
+        Set to false if atticd is running on a different host and you are
+        syncing the database snapshot manually.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -125,8 +135,8 @@ in
 
     systemd.services.attic-observatory-db-sync = {
       description = "Refresh Attic Observatory database snapshot";
-      after = [ "atticd.service" ];
-      requires = [ "atticd.service" ];
+      after = lib.optional cfg.dependOnAtticd "atticd.service";
+      requires = lib.optional cfg.dependOnAtticd "atticd.service";
       serviceConfig = {
         Type = "oneshot";
         ExecStart = dbSyncScript;
@@ -152,13 +162,11 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [
         "network.target"
-        "atticd.service"
         "attic-observatory-db-sync.service"
-      ];
+      ] ++ lib.optional cfg.dependOnAtticd "atticd.service";
       requires = [
-        "atticd.service"
         "attic-observatory-db-sync.service"
-      ];
+      ] ++ lib.optional cfg.dependOnAtticd "atticd.service";
       serviceConfig = {
         Type = "simple";
         ExecStart = "${cfg.package}/bin/attic-observatory";
