@@ -1,6 +1,6 @@
 # Post-Build Hook Diagnostics
 
-Status: `in-progress`
+Status: `done`
 Suggested branch: `feat/post-build-hook-diagnostics`
 Priority: `low`
 
