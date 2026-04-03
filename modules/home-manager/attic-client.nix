@@ -9,7 +9,7 @@
 
 let
   cfg = config.programs.attic-client;
-  tokenPlaceholder = name: "@ATTIC_CLIENT_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" ] [ "_" ] name)}@";
+  tokenPlaceholder = name: "@ATTIC_CLIENT_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" "." ] [ "_" "_" ] name)}_${builtins.substring 0 8 (builtins.hashString "sha256" name)}@";
 in
 {
   options.programs.attic-client = {
