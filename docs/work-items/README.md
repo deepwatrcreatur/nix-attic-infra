@@ -26,12 +26,12 @@ This folder is the agent-facing queue for `nix-attic-infra`.
 
 Highest value first:
 
-1. `01-generated-artifact-behavior-tests.md`
-2. `02-linux-darwin-activation-harness.md`
-3. `03-lib-contract-checks.md`
-4. `04-docs-consistency-guardrails.md`
-5. `05-ci-helper-extraction.md`
-6. `06-observatory-optional-atticd-dependency.md`
+1. `01-generated-artifact-behavior-tests.md` (done)
+2. `02-linux-darwin-activation-harness.md` (done)
+3. `03-lib-contract-checks.md` (done)
+4. `04-docs-consistency-guardrails.md` (done)
+5. `05-ci-helper-extraction.md` (done)
+6. `06-observatory-optional-atticd-dependency.md` (done)
 
 ## Why This Structure
 
