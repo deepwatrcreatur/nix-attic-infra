@@ -207,8 +207,8 @@
                 in
                 mkAssert "nixos-attic-client-upload-script"
                   (lib.hasInfix ''[servers."cache-prod"]'' scriptText &&
-                  lib.hasInfix ''endpoint = "https://cache.example.com"'' scriptText &&
-                  lib.hasInfix ''token = "$token"'' scriptText)
+                    lib.hasInfix ''endpoint = "https://cache.example.com"'' scriptText &&
+                    lib.hasInfix ''token = "$token"'' scriptText)
                   "The NixOS post-build hook script should correctly generate config.toml";
 
               nixos-attic-observatory-eval = mkEvalCheck "nixos-attic-observatory-eval" {
@@ -230,16 +230,16 @@
                 in
                 mkAssert "home-manager-attic-client-config-toml"
                   (lib.hasInfix ''[servers."cache-prod"]'' configTomlText &&
-                  lib.hasInfix ''endpoint = "https://cache.example.com"'' configTomlText &&
-                  lib.hasInfix "token = \"${tokenPlaceholder "cache-prod"}\"" configTomlText &&
-                  lib.hasInfix ''[servers."cache-personal"]'' configTomlText &&
-                  lib.hasInfix ''endpoint = "https://personal.attic.rs"'' configTomlText &&
-                  lib.hasInfix "token = \"${tokenPlaceholder "cache-personal"}\"" configTomlText &&
-                  lib.hasInfix ''[servers."cache.dot"]'' configTomlText &&
-                  lib.hasInfix "token = \"${tokenPlaceholder "cache.dot"}\"" configTomlText &&
-                  lib.hasInfix ''[servers."cache_dot"]'' configTomlText &&
-                  lib.hasInfix "token = \"${tokenPlaceholder "cache_dot"}\"" configTomlText &&
-                  tokenPlaceholder "cache.dot" != tokenPlaceholder "cache_dot")
+                    lib.hasInfix ''endpoint = "https://cache.example.com"'' configTomlText &&
+                    lib.hasInfix "token = \"${tokenPlaceholder "cache-prod"}\"" configTomlText &&
+                    lib.hasInfix ''[servers."cache-personal"]'' configTomlText &&
+                    lib.hasInfix ''endpoint = "https://personal.attic.rs"'' configTomlText &&
+                    lib.hasInfix "token = \"${tokenPlaceholder "cache-personal"}\"" configTomlText &&
+                    lib.hasInfix ''[servers."cache.dot"]'' configTomlText &&
+                    lib.hasInfix "token = \"${tokenPlaceholder "cache.dot"}\"" configTomlText &&
+                    lib.hasInfix ''[servers."cache_dot"]'' configTomlText &&
+                    lib.hasInfix "token = \"${tokenPlaceholder "cache_dot"}\"" configTomlText &&
+                    tokenPlaceholder "cache.dot" != tokenPlaceholder "cache_dot")
                   "The generated config.toml should contain all configured servers and tokens";
 
               home-manager-attic-client-aliases =
@@ -248,31 +248,31 @@
                 in
                 mkAssert "home-manager-attic-client-aliases"
                   (aliases."attic-push-main" == "attic push cache-prod:main" &&
-                  aliases."attic-pull-main" == "attic pull cache-prod:main" &&
-                  aliases."attic-push-dev" == "attic push cache-prod:dev" &&
-                  aliases."attic-pull-dev" == "attic pull cache-prod:dev" &&
-                  aliases."attic-push-pers" == "attic push cache-personal:pers" &&
-                  aliases."attic-pull-pers" == "attic pull cache-personal:pers" &&
-                  aliases."attic-push-dot" == "attic push cache.dot:dot" &&
-                  aliases."attic-pull-dot" == "attic pull cache.dot:dot" &&
-                  aliases."attic-push-underscore" == "attic push cache_dot:underscore" &&
-                  aliases."attic-pull-underscore" == "attic pull cache_dot:underscore")
+                    aliases."attic-pull-main" == "attic pull cache-prod:main" &&
+                    aliases."attic-push-dev" == "attic push cache-prod:dev" &&
+                    aliases."attic-pull-dev" == "attic pull cache-prod:dev" &&
+                    aliases."attic-push-pers" == "attic push cache-personal:pers" &&
+                    aliases."attic-pull-pers" == "attic pull cache-personal:pers" &&
+                    aliases."attic-push-dot" == "attic push cache.dot:dot" &&
+                    aliases."attic-pull-dot" == "attic pull cache.dot:dot" &&
+                    aliases."attic-push-underscore" == "attic push cache_dot:underscore" &&
+                    aliases."attic-pull-underscore" == "attic pull cache_dot:underscore")
                   "The generated shell aliases should match the server:alias format";
 
-              home-manager-attic-client-activation-eval =
+              home-manager-attic-client-activation =
                 let
                   activationScript = homeManagerAtticClient.config.home.activation.attic-config.data;
                   tokenPlaceholder = name: "@ATTIC_CLIENT_TOKEN_${lib.toUpper (builtins.replaceStrings [ "-" "." ] [ "_" "_" ] name)}_${builtins.substring 0 8 (builtins.hashString "sha256" name)}@";
                 in
-                mkAssert "home-manager-attic-client-activation-eval"
+                mkAssert "home-manager-attic-client-activation"
                   (lib.hasInfix "# Substitute token for cache-prod" activationScript &&
-                  lib.hasInfix "placeholder=${tokenPlaceholder "cache-prod"}" activationScript &&
-                  lib.hasInfix "# Substitute token for cache-personal" activationScript &&
-                  lib.hasInfix "placeholder=${tokenPlaceholder "cache-personal"}" activationScript &&
-                  lib.hasInfix "# Substitute token for cache.dot" activationScript &&
-                  lib.hasInfix "placeholder=${tokenPlaceholder "cache.dot"}" activationScript &&
-                  lib.hasInfix "# Substitute token for cache_dot" activationScript &&
-                  lib.hasInfix "placeholder=${tokenPlaceholder "cache_dot"}" activationScript)
+                    lib.hasInfix "placeholder=${tokenPlaceholder "cache-prod"}" activationScript &&
+                    lib.hasInfix "# Substitute token for cache-personal" activationScript &&
+                    lib.hasInfix "placeholder=${tokenPlaceholder "cache-personal"}" activationScript &&
+                    lib.hasInfix "# Substitute token for cache.dot" activationScript &&
+                    lib.hasInfix "placeholder=${tokenPlaceholder "cache.dot"}" activationScript &&
+                    lib.hasInfix "# Substitute token for cache_dot" activationScript &&
+                    lib.hasInfix "placeholder=${tokenPlaceholder "cache_dot"}" activationScript)
                   "The activation script should include substitution logic for all servers";
 
               home-manager-attic-client-darwin-eval = mkEvalCheck "home-manager-attic-client-darwin-eval" {
