@@ -1,6 +1,6 @@
 # Lib Contract Checks
 
-Status: `in-progress`
+Status: `done`
 Suggested branch: `test/lib-contract-checks`
 Priority: `high`
 
