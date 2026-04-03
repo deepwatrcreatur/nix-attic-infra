@@ -1,6 +1,6 @@
 # Observatory Optional atticd Dependency
 
-Status: `ready`
+Status: `in-progress`
 Suggested branch: `feat/observatory-optional-atticd-dependency`
 Priority: `medium`
 
