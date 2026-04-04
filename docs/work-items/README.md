@@ -36,7 +36,8 @@ Highest value first:
 8. `08-dry-run-verification.md` (done)
 9. `09-post-build-hook-diagnostics.md` (done)
 10. `10-secrets-integration-harness.md` (done)
-11. `11-automated-lockfile-freshness.md` (ready)
+11. `11-automated-lockfile-freshness.md` (done)
+12. `13-module-documentation-generator.md` (ready)
 
 ## Why This Structure
 
