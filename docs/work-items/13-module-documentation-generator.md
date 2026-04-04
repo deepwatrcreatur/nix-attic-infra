@@ -1,6 +1,6 @@
 # Module Documentation Generator
 
-Status: `ready`
+Status: `in-progress`
 Suggested branch: `feat/module-docs-generator`
 Priority: `medium`
 
