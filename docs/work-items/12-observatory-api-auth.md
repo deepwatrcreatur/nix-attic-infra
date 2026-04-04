@@ -1,6 +1,6 @@
 # Observatory API Auth
 
-Status: `ready`
+Status: `in-progress`
 Suggested branch: `feat/observatory-api-auth`
 Priority: `low`
 
