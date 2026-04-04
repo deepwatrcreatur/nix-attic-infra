@@ -1,6 +1,6 @@
 # Automated Lockfile Freshness
 
-Status: `ready`
+Status: `in-progress`
 Suggested branch: `feat/lockfile-freshness-check`
 Priority: `low`
 
