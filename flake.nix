@@ -47,6 +47,7 @@
             attic-client = attic.packages.${system}.attic-client;
             attic-server = attic.packages.${system}.attic-server;
             attic-observatory = attic-observatory.packages.${system}.default;
+            generate-docs = import ./ci/generate-docs.nix { inherit pkgs lib self; };
             default = attic.packages.${system}.attic;
           };
 
@@ -311,6 +312,10 @@
               };
 
               lockfile-freshness = import ./tests/lockfile-freshness.nix {
+                inherit pkgs lib self;
+              };
+
+              module-docs = import ./ci/generate-docs.nix {
                 inherit pkgs lib self;
               };
             };
