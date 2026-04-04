@@ -15,6 +15,10 @@
 
     # Canonical upstream Attic flake (server + client + nixos module)
     attic.url = "github:zhaofengli/attic";
+
+    # Secrets management for integration tests
+    sops-nix.url = "github:Mic92/sops-nix";
+    agenix.url = "github:ryantm/agenix";
   };
 
   outputs =
@@ -24,6 +28,8 @@
     , home-manager
     , attic
     , attic-observatory
+    , sops-nix
+    , agenix
     }:
     flake-utils.lib.eachDefaultSystem
       (
@@ -298,6 +304,10 @@
 
               docs-consistency = import ./tests/docs-consistency.nix {
                 inherit pkgs lib self;
+              };
+
+              secrets-integration = import ./tests/secrets-integration.nix {
+                inherit pkgs lib self sops-nix agenix evalNixos evalHomeManager mkAssert;
               };
             };
         }
