@@ -106,6 +106,12 @@ in
         default = 8082;
         description = "Port nginx listens on for the attic-observatory UI.";
       };
+
+      basicAuthFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        description = "Path to a file containing htpasswd basic auth credentials.";
+      };
     };
 
     openFirewall = lib.mkOption {
@@ -217,6 +223,7 @@ in
           port = cfg.nginx.port;
         }
       ];
+      basicAuthFile = cfg.nginx.basicAuthFile;
       locations."/" = {
         proxyPass = "http://${cfg.listenAddress}:${toString cfg.listenPort}";
         extraConfig = ''

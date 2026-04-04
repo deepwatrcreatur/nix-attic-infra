@@ -484,6 +484,24 @@ boolean
 
 
 
+## services\.attic-observatory\.nginx\.basicAuthFile
+
+
+
+Path to a file containing htpasswd basic auth credentials\.
+
+
+
+*Type:*
+null or absolute path
+
+
+
+*Default:*
+` null `
+
+
+
 ## services\.attic-observatory\.nginx\.listenAddress
 
 

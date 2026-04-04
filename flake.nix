@@ -124,6 +124,7 @@
                   services.attic-observatory = {
                     enable = true;
                     dependOnAtticd = false;
+                    nginx.basicAuthFile = "/etc/secrets/htpasswd";
                   };
                 }
               ];
@@ -218,6 +219,7 @@
               nixos-attic-observatory-no-atticd-eval = mkEvalCheck "nixos-attic-observatory-no-atticd-eval" {
                 dependOnAtticd = nixosAtticObservatoryNoAtticd.config.services.attic-observatory.dependOnAtticd;
                 hasAtticdDep = builtins.elem "atticd.service" nixosAtticObservatoryNoAtticd.config.systemd.services.attic-observatory.after;
+                basicAuthFile = nixosAtticObservatoryNoAtticd.config.services.nginx.virtualHosts."attic-observatory".basicAuthFile;
               };
 
               home-manager-attic-client-eval = mkEvalCheck "home-manager-attic-client-eval" {
