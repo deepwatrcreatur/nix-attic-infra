@@ -309,6 +309,10 @@
               secrets-integration = import ./tests/secrets-integration.nix {
                 inherit pkgs lib self sops-nix agenix evalNixos evalHomeManager mkAssert;
               };
+
+              lockfile-freshness = import ./tests/lockfile-freshness.nix {
+                inherit pkgs lib self;
+              };
             };
         }
       )
