@@ -320,6 +320,17 @@
               module-docs = import ./ci/generate-docs.nix {
                 inherit pkgs lib self;
               };
+
+              # INVARIANT: docs/OPTIONS.md is generated; this fails when the
+              # committed copy no longer matches module-docs output.
+              options-doc-fresh = pkgs.runCommand "options-doc-fresh" { } ''
+                if ! diff -u ${./docs/OPTIONS.md} ${self.checks.${system}.module-docs}/OPTIONS.md; then
+                  echo "docs/OPTIONS.md is stale. Regenerate it:" >&2
+                  echo "  nix build .#checks.${system}.module-docs && cp result/OPTIONS.md docs/OPTIONS.md" >&2
+                  exit 1
+                fi
+                touch $out
+              '';
             };
         }
       )
