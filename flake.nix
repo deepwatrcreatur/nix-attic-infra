@@ -320,13 +320,17 @@
               module-docs = import ./ci/generate-docs.nix {
                 inherit pkgs lib self;
               };
-
-              # INVARIANT: docs/OPTIONS.md is generated; this fails when the
-              # committed copy no longer matches module-docs output.
+            }
+            # INVARIANT: docs/OPTIONS.md is generated; this fails when the
+            # committed copy no longer matches module-docs output.
+            # WHY: x86_64-linux only. Generated defaults name the platform
+            # (attic-observatory's package defaultText), so the committed file
+            # is the x86_64-linux rendering and cannot match other systems.
+            // lib.optionalAttrs (system == "x86_64-linux") {
               options-doc-fresh = pkgs.runCommand "options-doc-fresh" { } ''
-                if ! diff -u ${./docs/OPTIONS.md} ${self.checks.${system}.module-docs}/OPTIONS.md; then
-                  echo "docs/OPTIONS.md is stale. Regenerate it:" >&2
-                  echo "  nix build .#checks.${system}.module-docs && cp result/OPTIONS.md docs/OPTIONS.md" >&2
+                if ! diff -u ${./docs/OPTIONS.md} ${self.checks.x86_64-linux.module-docs}/OPTIONS.md; then
+                  echo "docs/OPTIONS.md is stale. Regenerate it on x86_64-linux:" >&2
+                  echo "  nix build .#checks.x86_64-linux.module-docs && cp result/OPTIONS.md docs/OPTIONS.md" >&2
                   exit 1
                 fi
                 touch $out
