@@ -27,8 +27,9 @@ branch and PR; mark the item `in-progress` when you take it.
   the tests in `tests/`.
 - Option changes: regenerate `docs/OPTIONS.md`
   (`nix build .#checks.x86_64-linux.module-docs`, then copy
-  `result/OPTIONS.md`). No check compares it with the committed file yet, so
-  do this by hand.
+  `result/OPTIONS.md`). The `options-doc-fresh` check (x86_64-linux only,
+  because the rendered defaults name the platform) fails while the committed
+  file is stale.
 
 ## Invariants
 
