@@ -337,12 +337,13 @@ programs.attic-client.servers = {
 ### Debug Commands
 
 ```bash
-# Check token access
-sudo -u builder cat /run/secrets/attic-token
+# Check token access without printing it
+sudo -u builder test -r /run/secrets/attic-token && echo readable
 
-# Test attic connectivity
-attic login test https://cache.example.com $(cat /run/secrets/attic-token)
-attic cache list
+# Test the token against the server; the header goes on stdin, so the
+# token is neither printed nor in any process's arguments (200 = valid)
+sudo -u builder sh -c 'printf "Authorization: Bearer %s\n" "$(cat /run/secrets/attic-token)" |
+  curl -sS -o /dev/null -w "%{http_code}\n" -H @- https://cache.example.com/_api/v1/cache-config/main'
 
 # Verify post-build hook
 nix-build '<nixpkgs>' -A hello  # Should trigger hook if configured
